@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  ebook-db:
+    image: mysql:8.0
+    container_name: ebook-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ebook
+      MYSQL_USER: ebook
+      MYSQL_PASSWORD: monebook225
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - ebook_mysql_data:/var/lib/mysql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  ebook_mysql_data:

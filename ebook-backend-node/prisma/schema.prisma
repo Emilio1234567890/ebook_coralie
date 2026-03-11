@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  pending
+  paid
+  refunded
+  canceled
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders       Order[]
+  entitlements Entitlement[]
+}
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  slug          String   @unique
+  name          String
+  description   String?
+  priceCents    Int
+  currency      String   @default("eur")
+  stripePriceId String
+  filePath      String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orders       Order[]
+  entitlements Entitlement[]
+}
+
+model Order {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  productId   Int
+  status      String
+  amountCents Int
+  currency    String
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+
+  stripeCheckoutSessionId String?
+  stripePaymentIntentId   String?
+  stripeCustomerId        String?
+
+  paypalOrderId   String? @unique
+  paypalCaptureId String?
+  paymentProvider String? // "stripe" | "paypal"
+
+  meta Json?
+
+  user         User          @relation(fields: [userId], references: [id])
+  product      Product       @relation(fields: [productId], references: [id])
+  entitlements Entitlement[]
+}
+
+model Entitlement {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  productId Int
+  orderId   Int?
+  active    Boolean   @default(true)
+  source    String?
+  grantedAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  @@unique([userId, productId])
+  @@index([orderId])
+  @@index([active])
+  @@index([userId])
+  @@index([productId])
+}
+
+model Visit {
+  id          Int      @id @default(autoincrement())
+  path        String
+  country     String?
+  countryCode String?
+  city        String?
+  referrer    String?
+  ua          String?
+  browser     String?
+  os          String?
+  device      String?
+  ipHash      String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([countryCode])
+  @@index([path])
+}

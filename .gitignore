@@ -1,0 +1,83 @@
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Logs
+# =========================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Env
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Node
+# =========================
+node_modules/
+.pnpm-store/
+
+# =========================
+# Frontend (Next.js)
+# =========================
+.next/
+out/
+build/
+dist/
+.vercel/
+coverage/
+*.tsbuildinfo
+
+# Next static export / cache
+frontend/.next/
+frontend/out/
+frontend/dist/
+ebook-frontend/.next/
+ebook-frontend/out/
+ebook-frontend/dist/
+
+# =========================
+# Backend (Node / Express / Prisma)
+# =========================
+ebook-backend-node/node_modules/
+ebook-backend-node/dist/
+ebook-backend-node/build/
+ebook-backend-node/coverage/
+
+# Prisma
+ebook-backend-node/prisma/dev.db
+ebook-backend-node/prisma/dev.db-journal
+ebook-backend-node/prisma/*.db
+ebook-backend-node/prisma/*.db-journal
+
+# Uploads / private files
+uploads/
+storage/
+tmp/
+temp/
+
+# PDF / ebook private assets
+private/
+private-ebooks/
+ebooks/
+*.local.pdf
+
+# =========================
+# Misc
+# =========================
+.cache/
+.eslintcache

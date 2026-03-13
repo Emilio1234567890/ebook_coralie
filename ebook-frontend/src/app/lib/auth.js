@@ -11,10 +11,12 @@ export function AuthProvider({ children }) {
 
   async function refresh() {
     const token = getToken();
+
     if (!token) {
       setUser(null);
       return;
     }
+
     try {
       const r = await apiFetch("/api/auth/me");
       setUser(r.user);
@@ -45,6 +47,7 @@ export function AuthProvider({ children }) {
   async function logout() {
     clearToken();
     setUser(null);
+    setLoading(false);
   }
 
   useEffect(() => {

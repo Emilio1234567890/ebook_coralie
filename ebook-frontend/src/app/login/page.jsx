@@ -87,7 +87,7 @@ export default function LoginPage() {
                 </label>
 
                 <Link
-                  href="/login"
+                  href="/forgot-password"
                   className="text-xs text-white/44 transition hover:text-[rgba(245,224,175,0.96)]"
                 >
                   Mot de passe oublié ?

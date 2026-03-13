@@ -15,16 +15,17 @@ enum OrderStatus {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  isAdmin   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  email               String               @unique
+  password            String
+  isAdmin             Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
-  orders       Order[]
-  entitlements Entitlement[]
+  orders              Order[]
+  entitlements        Entitlement[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Product {
@@ -60,13 +61,18 @@ model Order {
 
   paypalOrderId   String? @unique
   paypalCaptureId String?
-  paymentProvider String? // "stripe" | "paypal"
+  paymentProvider String?
 
   meta Json?
 
   user         User          @relation(fields: [userId], references: [id])
   product      Product       @relation(fields: [productId], references: [id])
   entitlements Entitlement[]
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Entitlement {
@@ -107,4 +113,18 @@ model Visit {
   @@index([createdAt])
   @@index([countryCode])
   @@index([path])
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }

@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/app/lib/auth";
 import { apiFetch } from "@/app/lib/api";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const reveal = {
   hidden: { opacity: 0, y: 24 },
@@ -29,8 +29,7 @@ function Detail({ title, text }) {
       className="lux-card p-6"
       whileHover={{ y: -4, transition: { duration: 0.25 } }}
     >
-      <p className="lux-kicker">édition</p>
-      <h3 className="mt-3 text-2xl text-white">{title}</h3>
+      <h3 className="mt-1 text-2xl text-white">{title}</h3>
       <p className="mt-3 leading-7 text-white/62">{text}</p>
     </motion.div>
   );
@@ -39,24 +38,53 @@ function Detail({ title, text }) {
 export default function HomePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(false);
 
-  const price = useMemo(() => ({ euros: "9", cents: "99" }), []);
+  const price = useMemo(() => ({ euros: "14", cents: "99" }), []);
+
+  useEffect(() => {
+    async function loadAccess() {
+      if (!user) {
+        setHasAccess(false);
+        return;
+      }
+
+      try {
+        setCheckingAccess(true);
+        const r = await apiFetch("/api/dashboard");
+        setHasAccess(!!r.hasAccess);
+      } catch {
+        setHasAccess(false);
+      } finally {
+        setCheckingAccess(false);
+      }
+    }
+
+    loadAccess();
+  }, [user]);
 
   async function buy() {
     setMsg(null);
-    if (!user) return router.push("/login");
+
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    if (hasAccess) {
+      router.push("/bibliotheque");
+      return;
+    }
 
     try {
       setBusy(true);
-      const r = await apiFetch("/api/checkout-session", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      window.location.href = r.url;
+      router.push("/checkout");
     } catch (e) {
-      setMsg(e.message);
+      setMsg(e.message || "Impossible d’ouvrir la page de checkout.");
     } finally {
       setBusy(false);
     }
@@ -84,9 +112,9 @@ export default function HomePage() {
                   variants={reveal}
                   className="flex flex-wrap gap-3"
                 >
-                  <span className="lux-chip">ebook signature</span>
                   <span className="lux-chip">récit sensible</span>
                   <span className="lux-chip">accès privé</span>
+                  <span className="lux-chip">lecture numérique</span>
                 </motion.div>
 
                 <motion.p
@@ -119,13 +147,20 @@ export default function HomePage() {
                   variants={reveal}
                   className="mt-10 flex flex-wrap gap-4"
                 >
-                  <button
-                    disabled={busy || loading}
-                    onClick={buy}
-                    className="lux-btn lux-btn-gold"
-                  >
-                    {busy ? "Redirection..." : "Accéder à l’édition"}
-                  </button>
+                  {hasAccess ? (
+                    <Link href="/bibliotheque" className="lux-btn lux-btn-gold">
+                      Aller à la bibliothèque
+                    </Link>
+                  ) : (
+                    <button
+                      disabled={busy || loading || checkingAccess}
+                      onClick={buy}
+                      className="lux-btn lux-btn-gold"
+                      type="button"
+                    >
+                      {busy ? "Ouverture..." : "Accéder à l’édition"}
+                    </button>
+                  )}
 
                   <Link href="/martinique" className="lux-btn lux-btn-ghost">
                     Entrer dans l’univers
@@ -164,7 +199,9 @@ export default function HomePage() {
                       accès
                     </p>
                     <p className="mt-2 text-lg text-white/78">
-                      Privé, immédiat, personnel.
+                      {hasAccess
+                        ? "Déjà disponible dans ta bibliothèque."
+                        : "Privé, immédiat, personnel."}
                     </p>
                   </div>
                 </motion.div>
@@ -189,13 +226,12 @@ export default function HomePage() {
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(212,176,96,0.22),transparent_45%)]" />
 
                   <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                    <p className="lux-kicker">collection</p>
                     <p className="mt-3 text-3xl leading-tight text-white">
                       Une béninoise en Martinique
                     </p>
                     <p className="mt-3 max-w-sm text-sm leading-7 text-white/70">
-                      Une pièce éditoriale pensée comme une expérience de
-                      lecture précieuse, intime et mémorable.
+                      Une expérience de lecture intime, sensible et mémorable,
+                      accessible dans un espace privé.
                     </p>
                   </div>
                 </div>
@@ -214,7 +250,7 @@ export default function HomePage() {
             />
             <Detail
               title="Une pièce à garder"
-              text="Un format numérique pensé comme une édition à posséder, relire et offrir à son propre rythme."
+              text="Un format numérique pensé comme une œuvre à posséder, relire et retrouver à son rythme."
             />
           </section>
 
@@ -240,13 +276,20 @@ export default function HomePage() {
               <div className="mt-8 lux-divider" />
 
               <div className="mt-8 flex flex-wrap gap-4">
-                <button
-                  disabled={busy || loading}
-                  onClick={buy}
-                  className="lux-btn lux-btn-gold"
-                >
-                  {busy ? "Redirection..." : "Acheter l’édition"}
-                </button>
+                {hasAccess ? (
+                  <Link href="/bibliotheque" className="lux-btn lux-btn-gold">
+                    Lire l’ebook
+                  </Link>
+                ) : (
+                  <button
+                    disabled={busy || loading || checkingAccess}
+                    onClick={buy}
+                    className="lux-btn lux-btn-gold"
+                    type="button"
+                  >
+                    {busy ? "Ouverture..." : "Acheter l’édition"}
+                  </button>
+                )}
 
                 <Link
                   href={user ? "/dashboard" : "/register"}
@@ -270,13 +313,13 @@ export default function HomePage() {
               </h2>
               <p className="mt-5 leading-8 text-white/64">
                 Après achat, l’accès est débloqué dans ton espace personnel pour
-                retrouver ton édition et la télécharger à tout moment.
+                retrouver ton édition dans la bibliothèque privée.
               </p>
 
               <div className="mt-8 space-y-4">
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
                   <p className="text-white">Paiement sécurisé</p>
-                  <p className="mt-2 text-sm text-white/55">Stripe</p>
+                  <p className="mt-2 text-sm text-white/55">Carte ou PayPal</p>
                 </div>
 
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
@@ -285,12 +328,18 @@ export default function HomePage() {
                 </div>
 
                 <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
-                  <p className="text-white">Téléchargement</p>
+                  <p className="text-white">Lecture en ligne</p>
                   <p className="mt-2 text-sm text-white/55">
                     Disponible après achat
                   </p>
                 </div>
               </div>
+
+              {hasAccess ? (
+                <div className="mt-6 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                  Tu possèdes déjà cet ebook dans ta bibliothèque.
+                </div>
+              ) : null}
             </motion.div>
           </section>
 

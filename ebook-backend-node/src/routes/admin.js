@@ -79,7 +79,7 @@ r.patch(
         slug: "ebook",
         name: data.name || "eBook",
         description: data.description ?? null,
-        priceCents: data.priceCents ?? 999,
+        priceCents: data.priceCents ?? 1499,
         currency: data.currency || "eur",
         stripePriceId: data.stripePriceId || "price_xxx",
         filePath: data.filePath || "storage/ebook.pdf",

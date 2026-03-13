@@ -4,6 +4,9 @@ import { Header } from "@/components/Header";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useAuth } from "@/app/lib/auth";
+import { apiFetch } from "@/app/lib/api";
+import { useEffect, useState } from "react";
 
 const SCENES = [
   {
@@ -12,7 +15,6 @@ const SCENES = [
     title: "Le rocher impose d’abord le silence.",
     text: "Avant les détails, il y a cette force immédiate : une masse vive, sculptée par la lumière, posée entre ciel et mer. La Martinique peut commencer comme ça, par une sensation de présence brute, presque souveraine.",
     img: "/media/martinique-rocher.jpg",
-    tone: "from-[rgba(64,45,18,0.78)] to-[rgba(11,12,18,0.88)]",
   },
   {
     id: "horizon",
@@ -20,7 +22,6 @@ const SCENES = [
     title: "L’horizon ouvre l’espace intérieur.",
     text: "Le bleu ne sert pas ici de décor. Il élargit le rythme, calme la pensée, donne au regard une profondeur plus lente. On ne contemple pas seulement la mer : on entre dans un autre tempo.",
     img: "/media/martinique-horizon.jpg",
-    tone: "from-[rgba(8,44,58,0.78)] to-[rgba(10,12,18,0.9)]",
   },
   {
     id: "relief",
@@ -28,7 +29,6 @@ const SCENES = [
     title: "La forêt garde la densité du lieu.",
     text: "Montagnes, franges tropicales, eau dense, ciel lourd : tout devient plus charnel. La Martinique ne se réduit jamais à une carte postale. Elle possède une texture, une épaisseur, une respiration propre.",
     img: "/media/martinique-foret.jpg",
-    tone: "from-[rgba(17,55,37,0.74)] to-[rgba(10,12,18,0.9)]",
   },
   {
     id: "anse",
@@ -36,7 +36,6 @@ const SCENES = [
     title: "Puis vient la part plus intime.",
     text: "Une anse cachée, l’ombre des branches, un bateau immobile, la transparence de l’eau. À ce moment-là, le paysage cesse d’être spectaculaire ; il devient presque confidentiel, personnel, retenu.",
     img: "/media/martinique-anse.jpg",
-    tone: "from-[rgba(8,52,72,0.72)] to-[rgba(10,12,18,0.9)]",
   },
 ];
 
@@ -95,7 +94,6 @@ function SceneBlock({ item, index }) {
               sizes="(max-width: 1024px) 100vw, 58vw"
             />
 
-            {/* seulement un léger dégradé en bas pour le texte */}
             <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-[rgba(6,8,12,0.82)] via-[rgba(6,8,12,0.28)] to-transparent" />
 
             <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 lg:p-10">
@@ -172,6 +170,7 @@ function SceneBlock({ item, index }) {
     </motion.section>
   );
 }
+
 function EssenceCard({ item, i }) {
   return (
     <motion.article
@@ -205,6 +204,31 @@ function EssenceCard({ item, i }) {
 }
 
 export default function MartiniquePage() {
+  const { user } = useAuth();
+  const [hasAccess, setHasAccess] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(false);
+
+  useEffect(() => {
+    async function loadAccess() {
+      if (!user) {
+        setHasAccess(false);
+        return;
+      }
+
+      try {
+        setCheckingAccess(true);
+        const r = await apiFetch("/api/dashboard");
+        setHasAccess(!!r.hasAccess);
+      } catch {
+        setHasAccess(false);
+      } finally {
+        setCheckingAccess(false);
+      }
+    }
+
+    loadAccess();
+  }, [user]);
+
   return (
     <>
       <Header />
@@ -243,10 +267,26 @@ export default function MartiniquePage() {
                   <a href="#parcours" className="lux-btn lux-btn-gold">
                     Commencer le parcours
                   </a>
-                  <Link href="/#acheter" className="lux-btn lux-btn-ghost">
-                    Découvrir l’édition
-                  </Link>
+
+                  {hasAccess ? (
+                    <Link
+                      href="/bibliotheque"
+                      className="lux-btn lux-btn-ghost"
+                    >
+                      Aller à la bibliothèque
+                    </Link>
+                  ) : (
+                    <Link href="/#acheter" className="lux-btn lux-btn-ghost">
+                      Découvrir l’édition
+                    </Link>
+                  )}
                 </div>
+
+                {hasAccess ? (
+                  <div className="mt-6 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                    Ton ebook est déjà disponible dans ta bibliothèque.
+                  </div>
+                ) : null}
 
                 <div className="mt-12 grid gap-3 sm:grid-cols-3">
                   <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
@@ -265,7 +305,13 @@ export default function MartiniquePage() {
                     <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
                       lecture
                     </p>
-                    <p className="mt-2 text-white/88">immersive</p>
+                    <p className="mt-2 text-white/88">
+                      {checkingAccess
+                        ? "vérification"
+                        : hasAccess
+                          ? "déjà débloquée"
+                          : "immersive"}
+                    </p>
                   </div>
                 </div>
               </motion.div>
@@ -382,63 +428,76 @@ export default function MartiniquePage() {
           </section>
 
           <section className="grid gap-6 lg:grid-cols-12 lg:gap-8">
-  <motion.div
-    className="mq-panel-sea mq-panel overflow-hidden lg:col-span-7"
-    initial={{ opacity: 0, x: -18 }}
-    whileInView={{ opacity: 1, x: 0 }}
-    viewport={{ once: true, amount: 0.28 }}
-    transition={{ duration: 0.8 }}
-  >
-    <div className="relative min-h-[360px] overflow-hidden rounded-[26px]">
-      <Image
-        src="/media/martinique-rue.jpg"
-        alt="Rue vivante en Martinique"
-        fill
-        className="object-cover object-center"
-        sizes="(max-width: 1024px) 100vw, 60vw"
-      />
+            <motion.div
+              className="mq-panel-sea mq-panel overflow-hidden lg:col-span-7"
+              initial={{ opacity: 0, x: -18 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.28 }}
+              transition={{ duration: 0.8 }}
+            >
+              <div className="relative min-h-[360px] overflow-hidden rounded-[26px]">
+                <Image
+                  src="/media/martinique-rue.jpg"
+                  alt="Rue vivante en Martinique"
+                  fill
+                  className="object-cover object-center"
+                  sizes="(max-width: 1024px) 100vw, 60vw"
+                />
 
-      <div className="mq-bottom-shadow" />
-      <div className="mq-bottom-accent" />
+                <div className="mq-bottom-shadow" />
+                <div className="mq-bottom-accent" />
 
-      <div className="absolute inset-x-0 bottom-0 z-[3] p-6 sm:p-8">
-        <p className="lux-kicker">finale</p>
-        <p className="mt-3 max-w-2xl text-3xl leading-tight text-white sm:text-4xl">
-          Un lieu devient inoubliable quand il mêle paysage, matière et vie
-          humaine.
-        </p>
-      </div>
-    </div>
-  </motion.div>
+                <div className="absolute inset-x-0 bottom-0 z-[3] p-6 sm:p-8">
+                  <p className="lux-kicker">finale</p>
+                  <p className="mt-3 max-w-2xl text-3xl leading-tight text-white sm:text-4xl">
+                    Un lieu devient inoubliable quand il mêle paysage, matière
+                    et vie humaine.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
 
-  <motion.div
-    initial={{ opacity: 0, x: 18 }}
-    whileInView={{ opacity: 1, x: 0 }}
-    viewport={{ once: true, amount: 0.22 }}
-    transition={{ duration: 0.75 }}
-    className="flex items-center lg:col-span-5"
-  >
-    <div className="w-full rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(36,28,18,0.96),rgba(12,13,18,0.98))] p-6 shadow-[0_22px_80px_rgba(0,0,0,0.3)] sm:p-8 lg:p-10">
-      <p className="lux-kicker">prolonger l’expérience</p>
-      <h2 className="mt-4 text-3xl text-white sm:text-4xl">
-        Entrer dans l’édition.
-      </h2>
-      <p className="mt-5 leading-8 text-white/66">
-        Cette page ouvre une atmosphère. Le livre lui donne ensuite une
-        continuité plus intime, plus littéraire, plus personnelle.
-      </p>
+            <motion.div
+              initial={{ opacity: 0, x: 18 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.22 }}
+              transition={{ duration: 0.75 }}
+              className="flex items-center lg:col-span-5"
+            >
+              <div className="w-full rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(36,28,18,0.96),rgba(12,13,18,0.98))] p-6 shadow-[0_22px_80px_rgba(0,0,0,0.3)] sm:p-8 lg:p-10">
+                <p className="lux-kicker">prolonger l’expérience</p>
+                <h2 className="mt-4 text-3xl text-white sm:text-4xl">
+                  Entrer dans l’édition.
+                </h2>
+                <p className="mt-5 leading-8 text-white/66">
+                  Cette page ouvre une atmosphère. Le livre lui donne ensuite
+                  une continuité plus intime, plus littéraire, plus personnelle.
+                </p>
 
-      <div className="mt-8 flex flex-wrap gap-4">
-        <Link href="/#acheter" className="lux-btn lux-btn-gold">
-          Acheter l’édition
-        </Link>
-        <Link href="/" className="lux-btn lux-btn-ghost">
-          Retour à l’accueil
-        </Link>
-      </div>
-    </div>
-  </motion.div>
-</section>
+                <div className="mt-8 flex flex-wrap gap-4">
+                  {hasAccess ? (
+                    <Link href="/bibliotheque" className="lux-btn lux-btn-gold">
+                      Lire l’ebook
+                    </Link>
+                  ) : (
+                    <Link href="/#acheter" className="lux-btn lux-btn-gold">
+                      Acheter l’édition
+                    </Link>
+                  )}
+
+                  <Link href="/" className="lux-btn lux-btn-ghost">
+                    Retour à l’accueil
+                  </Link>
+                </div>
+
+                {hasAccess ? (
+                  <div className="mt-6 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                    L’édition est déjà disponible dans ton espace privé.
+                  </div>
+                ) : null}
+              </div>
+            </motion.div>
+          </section>
 
           <footer className="pt-4">
             <div className="h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.14),rgba(255,255,255,0))]" />

@@ -25,6 +25,7 @@ async function getPayPalAccessToken() {
   });
 
   const data = await res.json();
+
   if (!res.ok) {
     throw new Error(data?.error_description || "Erreur PayPal OAuth.");
   }
@@ -33,7 +34,30 @@ async function getPayPalAccessToken() {
 }
 
 async function getEbook() {
-  return prisma.product.findUnique({ where: { slug: "ebook" } });
+  return prisma.product.findUnique({
+    where: { slug: "ebook" },
+  });
+}
+
+async function getActiveEntitlement(userId, productId) {
+  return prisma.entitlement.findUnique({
+    where: {
+      userId_productId: { userId, productId },
+    },
+  });
+}
+
+async function getReusablePendingPaypalOrder(userId, productId) {
+  return prisma.order.findFirst({
+    where: {
+      userId,
+      productId,
+      status: "pending",
+      paymentProvider: "paypal",
+      paypalOrderId: { not: null },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 r.post(
@@ -41,21 +65,26 @@ r.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const product = await getEbook();
+
     if (!product || !product.active) {
       return fail(res, 409, "Produit indisponible.");
     }
 
-    const ent = await prisma.entitlement.findUnique({
-      where: {
-        userId_productId: { userId: req.user.id, productId: product.id },
-      },
-    });
-
+    const ent = await getActiveEntitlement(req.user.id, product.id);
     if (ent?.active) {
       return fail(res, 409, "Déjà débloqué.");
     }
 
-    const order = await prisma.order.create({
+    let order = await getReusablePendingPaypalOrder(req.user.id, product.id);
+
+    if (order?.paypalOrderId) {
+      return ok(res, {
+        paypalOrderId: order.paypalOrderId,
+        orderId: order.id,
+      });
+    }
+
+    order = await prisma.order.create({
       data: {
         userId: req.user.id,
         productId: product.id,
@@ -85,6 +114,10 @@ r.post(
             },
           },
         ],
+        application_context: {
+          shipping_preference: "NO_SHIPPING",
+          user_action: "PAY_NOW",
+        },
       }),
     });
 
@@ -96,10 +129,15 @@ r.post(
 
     await prisma.order.update({
       where: { id: order.id },
-      data: { paypalOrderId: data.id },
+      data: {
+        paypalOrderId: data.id,
+      },
     });
 
-    return ok(res, { paypalOrderId: data.id });
+    return ok(res, {
+      paypalOrderId: data.id,
+      orderId: order.id,
+    });
   }),
 );
 
@@ -108,6 +146,7 @@ r.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const { paypalOrderId } = req.body || {};
+
     if (!paypalOrderId) {
       return fail(res, 400, "paypalOrderId manquant.");
     }

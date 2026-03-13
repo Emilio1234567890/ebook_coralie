@@ -13,7 +13,7 @@ async function main() {
       slug: "ebook",
       name: "Une béninoise en Martinique",
       description: "eBook (PDF)",
-      priceCents: 999,
+      priceCents: 1499,
       currency: "eur",
       stripePriceId,
       filePath,

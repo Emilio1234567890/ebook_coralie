@@ -7,9 +7,11 @@ import authRoutes from "./routes/auth.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import downloadRoutes from "./routes/download.js";
 import stripeRoutes, { stripeWebhookHandler } from "./routes/stripe.js";
-import paypalRoutes from "./routes/paypal.js";
 import adminRoutes from "./routes/admin.js";
 import analyticsRoutes from "./routes/analytics.js";
+import paypalRoutes from "./routes/paypal.js";
+import orderRoutes from "./routes/orders.js";
+import readerRoutes from "./routes/reader.js";
 import { fail } from "./utils/http.js";
 
 const app = express();
@@ -40,6 +42,8 @@ app.use("/api", dashboardRoutes);
 app.use("/api", downloadRoutes);
 app.use("/api", stripeRoutes);
 app.use("/api", paypalRoutes);
+app.use("/api", orderRoutes);
+app.use("/api", readerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api", analyticsRoutes);
 
@@ -48,6 +52,7 @@ app.use((req, res) => fail(res, 404, "Not found"));
 app.use((err, req, res, next) => {
   console.error(err);
   if (res.headersSent) return next(err);
+
   return fail(
     res,
     500,
@@ -58,11 +63,11 @@ app.use((err, req, res, next) => {
 });
 
 const port = Number(process.env.PORT || 8000);
-app.listen(port, () =>
+app.listen(port, () => {
   console.log(
     "✅ API Node running on",
     port,
     "origin:",
     process.env.FRONTEND_URL,
-  ),
-);
+  );
+});

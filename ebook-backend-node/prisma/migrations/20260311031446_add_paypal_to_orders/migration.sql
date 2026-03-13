@@ -25,7 +25,8 @@ DROP INDEX `Order_stripeCheckoutSessionId_key` ON `Order`;
 DROP INDEX `Order_userId_createdAt_idx` ON `Order`;
 
 -- AlterTable
-ALTER TABLE `Order` DROP COLUMN `updatedAt`,
+ALTER TABLE `Order`
+    DROP COLUMN `updatedAt`,
     ADD COLUMN `paymentProvider` VARCHAR(191) NULL,
     ADD COLUMN `paypalCaptureId` VARCHAR(191) NULL,
     ADD COLUMN `paypalOrderId` VARCHAR(191) NULL,
@@ -36,7 +37,11 @@ ALTER TABLE `Order` DROP COLUMN `updatedAt`,
 CREATE UNIQUE INDEX `Order_paypalOrderId_key` ON `Order`(`paypalOrderId`);
 
 -- AddForeignKey
-ALTER TABLE `Entitlement` ADD CONSTRAINT `Entitlement_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `Product`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Order` ADD CONSTRAINT `Order_productId_fkey`
+FOREIGN KEY (`productId`) REFERENCES `Product`(`id`)
+ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Entitlement` ADD CONSTRAINT `Entitlement_orderId_fkey` FOREIGN KEY (`orderId`) REFERENCES `Order`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `Order` ADD CONSTRAINT `Order_userId_fkey`
+FOREIGN KEY (`userId`) REFERENCES `User`(`id`)
+ON DELETE RESTRICT ON UPDATE CASCADE;

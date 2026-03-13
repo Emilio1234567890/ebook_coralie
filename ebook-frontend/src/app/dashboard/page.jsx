@@ -54,29 +54,72 @@ function StatusPill({ status }) {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
+  const [busyDeleteId, setBusyDeleteId] = useState(null);
+  const [loadingData, setLoadingData] = useState(true);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/");
+    }
+  }, [loading, user, router]);
 
   async function load() {
     setErr(null);
+
     try {
+      setLoadingData(true);
       const r = await apiFetch("/api/dashboard");
       setData(r);
     } catch (e) {
-      setErr(e.message);
+      const msg = e?.message || "Impossible de charger le dashboard.";
+
+      if (
+        msg.toLowerCase().includes("401") ||
+        msg.toLowerCase().includes("unauthorized") ||
+        msg.toLowerCase().includes("non autorisé")
+      ) {
+        router.replace("/");
+        return;
+      }
+
+      setErr(msg);
+    } finally {
+      setLoadingData(false);
     }
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    if (!loading && user) {
+      load();
+    }
+  }, [loading, user]);
+
+  async function deletePending(orderId) {
+    try {
+      setBusyDeleteId(orderId);
+      setErr(null);
+
+      await apiFetch(`/api/orders/${orderId}/pending`, {
+        method: "DELETE",
+      });
+
+      await load();
+    } catch (e) {
+      setErr(e.message || "Impossible de supprimer cette commande.");
+    } finally {
+      setBusyDeleteId(null);
+    }
+  }
 
   const hasAccess = !!data?.hasAccess;
   const product = data?.product || null;
   const orders = data?.orders || [];
+  const pendingOrders = hasAccess ? [] : data?.pendingOrders || [];
 
   const stats = useMemo(() => {
     const paid = orders.filter((o) => o.status === "paid");
@@ -89,10 +132,9 @@ export default function DashboardPage() {
     };
   }, [orders]);
 
-  const visibleOrders = orders.filter(
-    (o) =>
-      o.status === "paid" || o.status === "refunded" || o.status === "pending",
-  );
+  if (loading || !user) {
+    return null;
+  }
 
   return (
     <>
@@ -108,17 +150,20 @@ export default function DashboardPage() {
           >
             <div className="relative z-10 grid gap-8 lg:grid-cols-12 lg:items-center">
               <div className="lg:col-span-7">
-                <p className="lux-kicker">ton espace</p>
-                <h1 className="lux-title mt-4">Dashboard</h1>
+                <h1 className="lux-title">Dashboard</h1>
 
                 <p className="mt-6 max-w-2xl text-lg leading-8 text-white/66">
                   {user?.name ? `Bienvenue ${user.name}. ` : "Bienvenue. "}
-                  Retrouve ton accès, ton historique d’achat et la lecture
-                  privée de ton ebook.
+                  Ici tu retrouves ton accès, tes commandes et ta lecture
+                  privée.
                 </p>
 
                 <div className="mt-8 flex flex-wrap gap-4">
-                  <button onClick={load} className="lux-btn lux-btn-ghost">
+                  <button
+                    onClick={load}
+                    className="lux-btn lux-btn-ghost"
+                    type="button"
+                  >
                     Rafraîchir
                   </button>
 
@@ -127,13 +172,23 @@ export default function DashboardPage() {
                   </Link>
 
                   {hasAccess ? (
-                    <Link href="/bibliotheque" className="lux-btn lux-btn-gold">
-                      Lire l’ebook
-                    </Link>
+                    <>
+                      <Link
+                        href="/bibliotheque"
+                        className="lux-btn lux-btn-gold"
+                      >
+                        Lire l’ebook
+                      </Link>
+
+                      <span className="inline-flex min-h-[50px] items-center rounded-[14px] border border-emerald-400/20 bg-emerald-400/10 px-5 text-[11px] uppercase tracking-[0.18em] text-emerald-200">
+                        Déjà acheté
+                      </span>
+                    </>
                   ) : (
                     <button
                       onClick={() => router.push("/checkout")}
                       className="lux-btn lux-btn-gold"
+                      type="button"
                     >
                       Aller au checkout
                     </button>
@@ -151,12 +206,12 @@ export default function DashboardPage() {
                 <div className="lux-card p-6 sm:p-8">
                   <p className="lux-kicker">statut</p>
                   <h2 className="mt-3 text-3xl text-white">
-                    {hasAccess ? "Accès actif" : "Accès verrouillé"}
+                    {hasAccess ? "Achat confirmé" : "Accès verrouillé"}
                   </h2>
                   <p className="mt-4 leading-8 text-white/64">
                     {hasAccess
-                      ? "Ton ebook est disponible dans ta bibliothèque privée."
-                      : "Passe par la page checkout pour payer par carte ou avec PayPal."}
+                      ? "Ton ebook est déjà débloqué. Aucun second achat n’est nécessaire."
+                      : "Passe par le checkout pour payer par carte ou avec PayPal."}
                   </p>
 
                   <div className="mt-6 rounded-[20px] border border-white/10 bg-white/5 p-4">
@@ -170,6 +225,12 @@ export default function DashboardPage() {
                       {product ? euro(product.priceCents) : "—"}
                     </p>
                   </div>
+
+                  {hasAccess ? (
+                    <div className="mt-4 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                      Cet ebook est déjà associé à ton compte.
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -179,7 +240,7 @@ export default function DashboardPage() {
             <StatCard
               label="Commandes"
               value={stats.ordersCount}
-              hint="Historique"
+              hint="Historique total"
             />
             <StatCard
               label="Payées"
@@ -193,25 +254,25 @@ export default function DashboardPage() {
             />
           </section>
 
-          <section className="lux-card p-6 sm:p-8">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="lux-kicker">historique</p>
-                <h2 className="mt-3 text-3xl text-white">Commandes</h2>
+          {loadingData ? (
+            <section className="lux-card p-6 sm:p-8 text-white/60">
+              Chargement du dashboard...
+            </section>
+          ) : null}
+
+          {!loadingData && !hasAccess && pendingOrders.length > 0 ? (
+            <section className="lux-card p-6 sm:p-8">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-3xl text-white">Actions en attente</h2>
+                  <p className="mt-3 text-white/58">
+                    Tu peux reprendre ou supprimer un paiement interrompu.
+                  </p>
+                </div>
               </div>
 
-              <button onClick={load} className="lux-btn lux-btn-ghost">
-                Rafraîchir
-              </button>
-            </div>
-
-            {!visibleOrders.length ? (
-              <div className="mt-6 rounded-[20px] border border-white/10 bg-white/4 p-5 text-white/60">
-                Aucune commande pour le moment.
-              </div>
-            ) : (
               <div className="mt-6 space-y-4">
-                {visibleOrders.map((o, idx) => (
+                {pendingOrders.map((o, idx) => (
                   <motion.div
                     key={o.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -220,7 +281,7 @@ export default function DashboardPage() {
                     className="rounded-[22px] border border-white/10 bg-white/4 p-5"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="min-w-0">
+                      <div>
                         <div className="flex flex-wrap items-center gap-3">
                           <p className="text-lg text-white">Commande #{o.id}</p>
                           <StatusPill status={o.status} />
@@ -228,36 +289,110 @@ export default function DashboardPage() {
 
                         <p className="mt-3 text-sm leading-7 text-white/58">
                           {euro(o.amountCents)} —{" "}
-                          {String(o.currency || "eur").toUpperCase()}
-                          {o.paidAt
-                            ? " • paiement confirmé"
-                            : " • paiement non finalisé"}
+                          {String(o.currency || "eur").toUpperCase()} —{" "}
+                          {o.paymentProvider || "payment"}
                         </p>
                       </div>
 
                       <div className="flex flex-wrap gap-3">
-                        {hasAccess ? (
-                          <Link
-                            href="/bibliotheque"
-                            className="lux-btn lux-btn-gold"
-                          >
-                            Lire
-                          </Link>
-                        ) : (
-                          <button
-                            onClick={() => router.push("/checkout")}
-                            className="lux-btn lux-btn-gold"
-                          >
-                            Checkout
-                          </button>
-                        )}
+                        <button
+                          onClick={() => router.push("/checkout")}
+                          className="lux-btn lux-btn-gold"
+                          type="button"
+                        >
+                          Reprendre
+                        </button>
+
+                        <button
+                          onClick={() => deletePending(o.id)}
+                          disabled={busyDeleteId === o.id}
+                          className="lux-btn lux-btn-ghost"
+                          type="button"
+                        >
+                          {busyDeleteId === o.id
+                            ? "Suppression..."
+                            : "Supprimer"}
+                        </button>
                       </div>
                     </div>
                   </motion.div>
                 ))}
               </div>
-            )}
-          </section>
+            </section>
+          ) : null}
+
+          {!loadingData ? (
+            <section className="lux-card p-6 sm:p-8">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-3xl text-white">Commandes</h2>
+                </div>
+
+                <button
+                  onClick={load}
+                  className="lux-btn lux-btn-ghost"
+                  type="button"
+                >
+                  Rafraîchir
+                </button>
+              </div>
+
+              {!orders.length ? (
+                <div className="mt-6 rounded-[20px] border border-white/10 bg-white/4 p-5 text-white/60">
+                  Aucune commande pour le moment.
+                </div>
+              ) : (
+                <div className="mt-6 space-y-4">
+                  {orders.map((o, idx) => (
+                    <motion.div
+                      key={o.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, delay: idx * 0.03 }}
+                      className="rounded-[22px] border border-white/10 bg-white/4 p-5"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <p className="text-lg text-white">
+                              Commande #{o.id}
+                            </p>
+                            <StatusPill status={o.status} />
+                          </div>
+
+                          <p className="mt-3 text-sm leading-7 text-white/58">
+                            {euro(o.amountCents)} —{" "}
+                            {String(o.currency || "eur").toUpperCase()}
+                            {o.paidAt ? " • paiement confirmé" : ""}
+                            {o.paymentProvider ? ` • ${o.paymentProvider}` : ""}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          {hasAccess ? (
+                            <Link
+                              href="/bibliotheque"
+                              className="lux-btn lux-btn-gold"
+                            >
+                              Lire
+                            </Link>
+                          ) : (
+                            <button
+                              onClick={() => router.push("/checkout")}
+                              className="lux-btn lux-btn-gold"
+                              type="button"
+                            >
+                              Checkout
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
         </div>
       </main>
     </>

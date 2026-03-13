@@ -1,42 +1,44 @@
 "use client";
 
+import Image from "next/image";
+import dynamic from "next/dynamic";
 import { Header } from "@/components/Header";
-import { apiFetch, getToken } from "@/app/lib/api";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { getToken, apiFetch } from "@/app/lib/api";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+const PdfBookReader = dynamic(() => import("@/components/PdfBookReader"), {
+  ssr: false,
+  loading: () => <div className="reader-loading">Chargement du lecteur…</div>,
+});
 
 export default function BibliothequePage() {
-  const router = useRouter();
-
-  const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [err, setErr] = useState(null);
+  const [entered, setEntered] = useState(false);
 
   useEffect(() => {
     let objectUrl = null;
 
     async function load() {
-      setErr(null);
-      setLoading(true);
-
       try {
-        const dashboard = await apiFetch("/api/dashboard");
-        if (!dashboard?.hasAccess) {
-          setHasAccess(false);
-          setLoading(false);
+        setErr(null);
+
+        const d = await apiFetch("/api/dashboard");
+        setHasAccess(!!d.hasAccess);
+
+        if (!d.hasAccess) {
+          setReady(true);
           return;
         }
 
-        setHasAccess(true);
-
-        const token = getToken();
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/download`,
+          `${process.env.NEXT_PUBLIC_API_URL}/api/reader/ebook`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${getToken()}`,
             },
           },
         );
@@ -48,10 +50,10 @@ export default function BibliothequePage() {
         const blob = await res.blob();
         objectUrl = URL.createObjectURL(blob);
         setPdfUrl(objectUrl);
+        setReady(true);
       } catch (e) {
-        setErr(e.message || "Erreur.");
-      } finally {
-        setLoading(false);
+        setErr(e.message || "Impossible de charger l’ebook.");
+        setReady(true);
       }
     }
 
@@ -62,86 +64,96 @@ export default function BibliothequePage() {
     };
   }, []);
 
-  const content = useMemo(() => {
-    if (loading) {
-      return (
-        <div className="lux-card p-8 text-white/70">
-          Chargement de ta bibliothèque...
-        </div>
-      );
-    }
-
-    if (err) {
-      return (
-        <div className="rounded-[20px] border border-rose-400/20 bg-rose-400/10 p-5 text-rose-200">
-          {err}
-        </div>
-      );
-    }
-
-    if (!hasAccess) {
-      return (
-        <div className="lux-card p-8">
-          <p className="lux-kicker">accès requis</p>
-          <h2 className="mt-3 text-3xl text-white">Ebook non débloqué</h2>
-          <p className="mt-4 max-w-2xl leading-8 text-white/62">
-            Ton accès n’est pas encore actif. Une fois le paiement validé, tu
-            pourras lire l’édition ici.
-          </p>
-
-          <div className="mt-8 flex flex-wrap gap-4">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="lux-btn lux-btn-gold"
-            >
-              Aller au dashboard
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        <div className="lux-card p-6 sm:p-8">
-          <p className="lux-kicker">bibliothèque</p>
-          <h2 className="mt-3 text-3xl text-white">
-            Une béninoise en Martinique
-          </h2>
-          <p className="mt-4 leading-8 text-white/64">
-            Lecture privée activée. Tu peux consulter l’ebook directement dans
-            ton espace.
-          </p>
-        </div>
-
-        <div className="overflow-hidden rounded-[26px] border border-white/10 bg-black/30 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-          {pdfUrl ? (
-            <iframe
-              src={pdfUrl}
-              title="Lecteur ebook"
-              className="h-[78svh] w-full"
-            />
-          ) : (
-            <div className="p-8 text-white/70">Chargement du lecteur...</div>
-          )}
-        </div>
-      </div>
-    );
-  }, [loading, err, hasAccess, pdfUrl, router]);
-
   return (
     <>
       <Header />
 
       <main className="page">
         <div className="container">
-          <motion.section
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-          >
-            {content}
-          </motion.section>
+          <section className="reader-shell">
+            <div className="reader-topbar">
+              <div>
+                <p className="lux-kicker">bibliothèque</p>
+                <h1 className="reader-title">Lecture privée</h1>
+                <p className="reader-subtitle">
+                  Une expérience pensée comme une entrée dans le livre, pas
+                  comme un simple PDF brut.
+                </p>
+              </div>
+            </div>
+
+            {err ? <div className="reader-alert">{err}</div> : null}
+
+            {!ready ? (
+              <div className="reader-loading">Chargement du livre…</div>
+            ) : !hasAccess ? (
+              <div className="reader-locked">
+                <p className="text-white/75">
+                  Ton accès n’est pas encore actif.
+                </p>
+                <div className="mt-5">
+                  <Link href="/checkout" className="lux-btn lux-btn-gold">
+                    Aller au checkout
+                  </Link>
+                </div>
+              </div>
+            ) : !pdfUrl ? null : !entered ? (
+              <div className="reader-stage">
+                <div className="book-entry">
+                  <div className="book-entry__left">
+                    <h2 className="book-entry__title">
+                      Une béninoise en Martinique
+                    </h2>
+                    <p className="book-entry__text">
+                      Entre dans la lecture comme on ouvre un ouvrage :
+                      lentement, visuellement, avec présence. Tu peux ensuite
+                      faire glisser les pages horizontalement.
+                    </p>
+
+                    <div className="book-entry__actions">
+                      <button
+                        type="button"
+                        className="lux-btn lux-btn-gold"
+                        onClick={() => setEntered(true)}
+                      >
+                        Ouvrir le livre
+                      </button>
+
+                      <Link href="/dashboard" className="lux-btn lux-btn-ghost">
+                        Retour au dashboard
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="book-entry__right">
+                    <button
+                      type="button"
+                      className="book-cover-frame book-cover-button"
+                      onClick={() => setEntered(true)}
+                      aria-label="Ouvrir le livre"
+                    >
+                      <div className="book-cover-image">
+                        <Image
+                          src="/brand/couverture_livrecoco.jpg"
+                          alt="Couverture du livre Une béninoise en Martinique"
+                          fill
+                          priority
+                          className="object-cover"
+                        />
+                      </div>
+
+                      <div className="book-cover-overlay" />
+                      <div className="book-cover-label">
+                        <span>Ouvrir le livre</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <PdfBookReader pdfUrl={pdfUrl} setErr={setErr} />
+            )}
+          </section>
         </div>
       </main>
     </>

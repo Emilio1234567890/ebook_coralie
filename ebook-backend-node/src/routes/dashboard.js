@@ -18,6 +18,7 @@ r.get(
         product: null,
         hasAccess: false,
         orders: [],
+        pendingOrders: [],
       });
     }
 
@@ -34,9 +35,29 @@ r.get(
       where: {
         userId: req.user.id,
         productId: product.id,
+        status: { in: ["paid", "refunded", "canceled"] },
       },
       orderBy: { createdAt: "desc" },
       take: 50,
+      select: {
+        id: true,
+        status: true,
+        amountCents: true,
+        currency: true,
+        paidAt: true,
+        createdAt: true,
+        paymentProvider: true,
+      },
+    });
+
+    const pendingOrders = await prisma.order.findMany({
+      where: {
+        userId: req.user.id,
+        productId: product.id,
+        status: "pending",
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
       select: {
         id: true,
         status: true,
@@ -58,6 +79,7 @@ r.get(
       },
       hasAccess: !!ent?.active,
       orders,
+      pendingOrders,
     });
   }),
 );

@@ -12,18 +12,62 @@ const r = Router();
 
 function sign(user) {
   if (!process.env.JWT_SECRET) throw new Error("Missing JWT_SECRET");
+
   return jwt.sign(
     { id: user.id, email: user.email, isAdmin: user.isAdmin },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" },
+    { expiresIn: "30d" },
   );
+}
+
+async function enrichUser(user) {
+  const product = await prisma.product.findUnique({
+    where: { slug: "ebook" },
+    select: { id: true },
+  });
+
+  let hasEbookAccess = false;
+
+  if (product) {
+    const ent = await prisma.entitlement.findUnique({
+      where: {
+        userId_productId: {
+          userId: user.id,
+          productId: product.id,
+        },
+      },
+      select: { active: true },
+    });
+
+    hasEbookAccess = !!ent?.active;
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    isAdmin: user.isAdmin,
+    hasEbookAccess,
+  };
 }
 
 r.get(
   "/me",
   requireAuth,
   asyncHandler(async (req, res) => {
-    return ok(res, { user: req.user });
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isAdmin: true,
+      },
+    });
+
+    if (!user) return fail(res, 404, "Utilisateur introuvable.");
+
+    return ok(res, { user: await enrichUser(user) });
   }),
 );
 
@@ -70,7 +114,10 @@ r.post(
 
     const token = sign(user);
 
-    return ok(res, { token, user });
+    return ok(res, {
+      token,
+      user: await enrichUser(user),
+    });
   }),
 );
 
@@ -111,12 +158,7 @@ r.post(
 
     return ok(res, {
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      },
+      user: await enrichUser(user),
     });
   }),
 );
@@ -154,7 +196,6 @@ r.post(
       .createHash("sha256")
       .update(rawToken)
       .digest("hex");
-
     const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
 
     await prisma.passwordResetToken.create({
@@ -166,10 +207,7 @@ r.post(
     });
 
     const appUrl = process.env.APP_URL || process.env.FRONTEND_URL;
-
-    if (!appUrl) {
-      throw new Error("Missing APP_URL or FRONTEND_URL");
-    }
+    if (!appUrl) throw new Error("Missing APP_URL or FRONTEND_URL");
 
     const resetUrl = `${appUrl}/reset-password?token=${rawToken}`;
 
@@ -241,13 +279,9 @@ r.post(
       where: {
         token: tokenHash,
         usedAt: null,
-        expiresAt: {
-          gt: new Date(),
-        },
+        expiresAt: { gt: new Date() },
       },
-      include: {
-        user: true,
-      },
+      include: { user: true },
     });
 
     if (!resetToken) {

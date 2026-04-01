@@ -21,7 +21,7 @@ function euro(cents = 0) {
   return (Number(cents) / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-function StripeCardForm({ email, onError, onSuccess, clientSecret }) {
+function StripeCardForm({ email, onError, onSuccess, clientSecret, disabled }) {
   const stripe = useStripe();
   const elements = useElements();
   const [busy, setBusy] = useState(false);
@@ -29,6 +29,11 @@ function StripeCardForm({ email, onError, onSuccess, clientSecret }) {
   async function handleSubmit(e) {
     e.preventDefault();
     onError(null);
+
+    if (disabled) {
+      onError("Tu dois accepter les conditions générales avant de payer.");
+      return;
+    }
 
     if (!stripe || !elements || !clientSecret) return;
 
@@ -71,8 +76,8 @@ function StripeCardForm({ email, onError, onSuccess, clientSecret }) {
       }
 
       onError("Le paiement n’a pas pu être confirmé.");
-    } catch (e) {
-      onError(e.message || "Erreur Stripe.");
+    } catch (e2) {
+      onError(e2.message || "Erreur Stripe.");
     } finally {
       setBusy(false);
     }
@@ -130,7 +135,7 @@ function StripeCardForm({ email, onError, onSuccess, clientSecret }) {
 
       <button
         type="submit"
-        disabled={!stripe || !elements || busy}
+        disabled={!stripe || !elements || busy || disabled}
         className="lux-btn lux-btn-gold w-full"
       >
         {busy ? "Paiement..." : "Payer par carte"}
@@ -138,6 +143,7 @@ function StripeCardForm({ email, onError, onSuccess, clientSecret }) {
     </form>
   );
 }
+
 function SummaryRow({ label, value, muted = false }) {
   return (
     <div className="flex items-start justify-between gap-4">
@@ -166,6 +172,9 @@ export default function CheckoutPage() {
   const [paypalReady, setPaypalReady] = useState(false);
   const [paypalRendered, setPaypalRendered] = useState(false);
 
+  const [acceptedCgv, setAcceptedCgv] = useState(false);
+  const [acceptedWaiver, setAcceptedWaiver] = useState(false);
+
   async function load() {
     setErr(null);
     try {
@@ -184,6 +193,7 @@ export default function CheckoutPage() {
   const product = data?.product || null;
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
   const userEmail = data?.user?.email || "";
+  const paymentBlocked = !acceptedCgv || !acceptedWaiver;
 
   useEffect(() => {
     async function createPaymentIntent() {
@@ -233,6 +243,11 @@ export default function CheckoutPage() {
         },
 
         createOrder: async () => {
+          if (paymentBlocked) {
+            setErr("Tu dois accepter les conditions générales avant de payer.");
+            throw new Error("CGV non acceptées");
+          }
+
           const res = await apiFetch("/api/paypal/create-order", {
             method: "POST",
             body: JSON.stringify({}),
@@ -240,10 +255,10 @@ export default function CheckoutPage() {
           return res.paypalOrderId;
         },
 
-        onApprove: async (data) => {
+        onApprove: async (paypalData) => {
           await apiFetch("/api/paypal/capture-order", {
             method: "POST",
-            body: JSON.stringify({ paypalOrderId: data.orderID }),
+            body: JSON.stringify({ paypalOrderId: paypalData.orderID }),
           });
 
           router.push("/success");
@@ -264,7 +279,7 @@ export default function CheckoutPage() {
         console.error(e);
         setErr("Impossible d’afficher PayPal.");
       });
-  }, [paypalReady, paypalRendered, hasAccess, router]);
+  }, [paypalReady, paypalRendered, hasAccess, router, paymentBlocked]);
 
   const stripeOptions = useMemo(() => {
     if (!clientSecret) return null;
@@ -323,9 +338,62 @@ export default function CheckoutPage() {
                   <div className="mt-8 rounded-[22px] border border-emerald-400/20 bg-emerald-400/10 p-5 text-emerald-200">
                     Ton accès est déjà actif. Tu peux aller directement dans ta
                     bibliothèque.
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        className="lux-btn lux-btn-gold"
+                        onClick={() => router.push("/bibliotheque")}
+                      >
+                        Aller à la bibliothèque
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-8 space-y-6">
+                    <div className="rounded-[24px] border border-white/10 bg-white/4 p-5">
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+                        validation obligatoire
+                      </p>
+
+                      <div className="mt-4 space-y-4">
+                        <label className="flex items-start gap-3 text-white/72">
+                          <input
+                            type="checkbox"
+                            checked={acceptedCgv}
+                            onChange={(e) => setAcceptedCgv(e.target.checked)}
+                            className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
+                          />
+                          <span className="leading-7">
+                            J’accepte les{" "}
+                            <a
+                              href="/conditions-generales"
+                              target="_blank"
+                              className="text-[rgba(245,224,175,0.96)] underline underline-offset-4"
+                            >
+                              conditions générales de vente
+                            </a>
+                            .
+                          </span>
+                        </label>
+
+                        <label className="flex items-start gap-3 text-white/72">
+                          <input
+                            type="checkbox"
+                            checked={acceptedWaiver}
+                            onChange={(e) =>
+                              setAcceptedWaiver(e.target.checked)
+                            }
+                            className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
+                          />
+                          <span className="leading-7">
+                            Je demande l’accès immédiat au contenu numérique et
+                            je reconnais renoncer à mon droit de rétractation
+                            une fois l’accès activé.
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
                     <div className="rounded-[28px] border border-white/10 bg-white/4 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:p-6">
                       <div className="mb-5 flex items-start justify-between gap-4">
                         <div>
@@ -366,6 +434,7 @@ export default function CheckoutPage() {
                             clientSecret={clientSecret}
                             onError={setErr}
                             onSuccess={() => router.push("/success")}
+                            disabled={paymentBlocked}
                           />
                         </Elements>
                       ) : null}
@@ -390,9 +459,16 @@ export default function CheckoutPage() {
                         cette page, sans le bloc carte PayPal.
                       </p>
 
-                      <div className="overflow-hidden rounded-[18px] border border-white/10 bg-white/3 p-3">
-                        <div ref={paypalRef} className="min-h-[52px]" />
-                      </div>
+                      {paymentBlocked ? (
+                        <div className="rounded-[18px] border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                          Accepte d’abord les conditions générales pour activer
+                          PayPal.
+                        </div>
+                      ) : (
+                        <div className="overflow-hidden rounded-[18px] border border-white/10 bg-white/3 p-3">
+                          <div ref={paypalRef} className="min-h-[52px]" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

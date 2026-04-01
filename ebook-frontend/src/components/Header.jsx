@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/app/lib/auth";
 
 export function Header() {
@@ -13,6 +13,28 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [showBar, setShowBar] = useState(true);
   const [logoutBusy, setLogoutBusy] = useState(false);
+
+  const hasEbookAccess = Boolean(user?.hasEbookAccess);
+
+  const navItems = useMemo(() => {
+    const items = [
+      { href: "/", label: "Accueil" },
+      { href: "/martinique", label: "Martinique" },
+    ];
+
+    if (hasEbookAccess) {
+      items.push({ href: "/bibliotheque", label: "Bibliothèque" });
+    } else {
+      items.push({ href: "/#acheter", label: "Acheter" });
+    }
+
+    items.push(
+      { href: "/contact", label: "Contact" },
+      { href: "/conditions-generales", label: "CGV" },
+    );
+
+    return items;
+  }, [hasEbookAccess]);
 
   useEffect(() => {
     let lastY = window.scrollY;
@@ -44,7 +66,9 @@ export function Header() {
     };
 
     const onResize = () => {
-      if (window.innerWidth >= 1024) setOpen(false);
+      if (window.innerWidth >= 1024) {
+        setOpen(false);
+      }
     };
 
     onScroll();
@@ -103,20 +127,11 @@ export function Header() {
           </Link>
 
           <nav className="site-nav hidden lg:flex">
-            <Link href="/" className="site-nav-link">
-              Accueil
-            </Link>
-            <Link href="/martinique" className="site-nav-link">
-              Martinique
-            </Link>
-            <Link href="/#acheter" className="site-nav-link">
-              Acheter
-            </Link>
-            {user ? (
-              <Link href="/bibliotheque" className="site-nav-link">
-                Bibliothèque
+            {navItems.map((item) => (
+              <Link key={item.href} href={item.href} className="site-nav-link">
+                {item.label}
               </Link>
-            ) : null}
+            ))}
           </nav>
 
           <div className="hidden lg:flex items-center gap-3">
@@ -190,39 +205,16 @@ export function Header() {
             >
               <div className="site-mobile-panel">
                 <div className="grid gap-2">
-                  <Link
-                    href="/"
-                    onClick={() => setOpen(false)}
-                    className="site-mobile-link flex items-center"
-                  >
-                    Accueil
-                  </Link>
-
-                  <Link
-                    href="/martinique"
-                    onClick={() => setOpen(false)}
-                    className="site-mobile-link flex items-center"
-                  >
-                    Martinique
-                  </Link>
-
-                  <Link
-                    href="/#acheter"
-                    onClick={() => setOpen(false)}
-                    className="site-mobile-link flex items-center"
-                  >
-                    Acheter
-                  </Link>
-
-                  {user ? (
+                  {navItems.map((item) => (
                     <Link
-                      href="/bibliotheque"
+                      key={item.href}
+                      href={item.href}
                       onClick={() => setOpen(false)}
                       className="site-mobile-link flex items-center"
                     >
-                      Bibliothèque
+                      {item.label}
                     </Link>
-                  ) : null}
+                  ))}
                 </div>
 
                 <div className="site-mobile-divider" />

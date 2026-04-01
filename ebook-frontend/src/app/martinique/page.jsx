@@ -6,73 +6,77 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAuth } from "@/app/lib/auth";
 import { apiFetch } from "@/app/lib/api";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const SCENES = [
+const JOURNEY = [
   {
-    id: "rocher",
-    tag: "01 · présence",
-    title: "Le rocher impose d’abord le silence.",
-    text: "Avant les détails, il y a cette force immédiate : une masse vive, sculptée par la lumière, posée entre ciel et mer. La Martinique peut commencer comme ça, par une sensation de présence brute, presque souveraine.",
+    id: "depart",
+    tag: "01 · départ",
+    title: "Tout commence par une décision intérieure.",
+    text: "Avant la beauté du décor, il y a ce moment suspendu où l’on quitte un rythme, une ville, des habitudes. La Martinique n’apparaît pas seulement comme une destination : elle commence comme un mouvement, une bascule, une promesse.",
+    img: "/media/martinique-horizon.jpg",
+    accent: "élan",
+  },
+  {
+    id: "arrivee",
+    tag: "02 · arrivée",
+    title: "Puis l’île se révèle par la chaleur, la lumière, l’accueil.",
+    text: "Les premiers jours ne ressemblent pas à une brochure. Ils ont la texture du réel : une lumière différente, une énergie nouvelle, des visages, des rues, une sensation très nette d’entrer ailleurs sans totalement se perdre.",
+    img: "/media/martinique-ville.jpg",
+    accent: "présence",
+  },
+  {
+    id: "lifestyle",
+    tag: "03 · quotidien",
+    title: "Très vite, il faut apprendre un autre tempo.",
+    text: "La Martinique se vit aussi dans les trajets, les habitudes, le coût des choses, les rencontres, les ajustements. C’est là que l’expérience devient plus profonde : elle oblige à observer, ralentir, comprendre autrement.",
+    img: "/media/martinique-rue.jpg",
+    accent: "adaptation",
+  },
+  {
+    id: "nature",
+    tag: "04 · nature",
+    title: "Et soudain, la nature reprend toute la place.",
+    text: "Reliefs, anses, plages, forêt, souffle marin : l’île offre constamment plus que de jolies images. Elle impose une relation sensible au paysage, presque physique, comme si l’on apprenait à habiter le décor autant qu’à le regarder.",
+    img: "/media/martinique-anse.jpg",
+    accent: "respiration",
+  },
+];
+
+const FACETS = [
+  {
+    title: "S’installer",
+    text: "Le livre traverse aussi l’envers du départ : logement, repères, mobilité, premiers choix.",
     img: "/media/martinique-rocher.jpg",
   },
   {
-    id: "horizon",
-    tag: "02 · horizon",
-    title: "L’horizon ouvre l’espace intérieur.",
-    text: "Le bleu ne sert pas ici de décor. Il élargit le rythme, calme la pensée, donne au regard une profondeur plus lente. On ne contemple pas seulement la mer : on entre dans un autre tempo.",
-    img: "/media/martinique-horizon.jpg",
-  },
-  {
-    id: "relief",
-    tag: "03 · relief",
-    title: "La forêt garde la densité du lieu.",
-    text: "Montagnes, franges tropicales, eau dense, ciel lourd : tout devient plus charnel. La Martinique ne se réduit jamais à une carte postale. Elle possède une texture, une épaisseur, une respiration propre.",
-    img: "/media/martinique-foret.jpg",
-  },
-  {
-    id: "anse",
-    tag: "04 · anse",
-    title: "Puis vient la part plus intime.",
-    text: "Une anse cachée, l’ombre des branches, un bateau immobile, la transparence de l’eau. À ce moment-là, le paysage cesse d’être spectaculaire ; il devient presque confidentiel, personnel, retenu.",
-    img: "/media/martinique-anse.jpg",
-  },
-];
-
-const ESSENCES = [
-  {
-    title: "Ville créole",
-    text: "Des façades colorées, du relief derrière, une lumière qui donne à la ville une vibration immédiate.",
-    img: "/media/martinique-ville.jpg",
-  },
-  {
-    title: "Rue vivante",
-    text: "Une circulation dense, une architecture chaude, une sensation de présence humaine qui ancre l’expérience.",
-    img: "/media/martinique-rue.jpg",
-  },
-  {
-    title: "Marché",
-    text: "Fruits, épices, couleurs, textures : le lieu devient matière, odeur, geste et proximité.",
+    title: "Vivre l’île",
+    text: "Le quotidien martiniquais apparaît dans sa chaleur, son rythme, ses contrastes et ses usages.",
     img: "/media/martinique-marche.jpg",
   },
+  {
+    title: "Se transformer",
+    text: "Au fil du récit, l’île devient aussi un espace de croissance, d’autonomie et de repositionnement intérieur.",
+    img: "/media/martinique-foret.jpg",
+  },
 ];
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 34 },
+const reveal = {
+  hidden: { opacity: 0, y: 26 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.82, ease: [0.22, 1, 0.36, 1] },
   },
 };
 
-function SceneBlock({ item, index }) {
+function JourneyBlock({ item, index }) {
   const reverse = index % 2 === 1;
 
   return (
     <motion.section
       id={item.id}
-      variants={fadeUp}
+      variants={reveal}
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, amount: 0.22 }}
@@ -84,20 +88,21 @@ function SceneBlock({ item, index }) {
           reverse ? "lg:order-2" : "lg:order-1",
         ].join(" ")}
       >
-        <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-[0_24px_80px_rgba(0,0,0,0.32)]">
+        <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-black shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
           <div className="relative h-[420px] sm:h-[520px] lg:h-[640px]">
             <Image
               src={item.img}
               alt={item.title}
               fill
-              className="object-cover object-center"
+              className="object-cover object-center transition-transform duration-700 hover:scale-[1.03]"
               sizes="(max-width: 1024px) 100vw, 58vw"
             />
 
-            <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-[rgba(6,8,12,0.82)] via-[rgba(6,8,12,0.28)] to-transparent" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,16,0.06),rgba(8,10,16,0.22))]" />
+            <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-[rgba(6,8,12,0.88)] via-[rgba(6,8,12,0.30)] to-transparent" />
 
             <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 lg:p-10">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-white/70">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-white/68">
                 {item.tag}
               </p>
               <h2 className="mt-4 max-w-3xl text-3xl leading-[1.02] text-white sm:text-5xl">
@@ -121,8 +126,8 @@ function SceneBlock({ item, index }) {
             </div>
 
             <div className="flex-1 pt-2">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-white/42">
-                fragment
+              <p className="text-[11px] uppercase tracking-[0.28em] text-white/40">
+                dans le livre
               </p>
 
               <p className="mt-6 text-[1.02rem] leading-9 text-white/72">
@@ -130,13 +135,13 @@ function SceneBlock({ item, index }) {
               </p>
 
               <div className="mt-8 rounded-[22px] border border-white/10 bg-white/4 p-5">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-white/42">
-                  dans l’édition
+                <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">
+                  tonalité
                 </p>
                 <p className="mt-3 leading-8 text-white/70">
-                  Ce passage prolonge l’univers du livre comme une matière
-                  sensible : pas un guide, mais une présence, une atmosphère,
-                  une manière de ressentir le lieu.
+                  Le récit avance par sensations, détails vécus, fragments de
+                  quotidien et transformations intérieures, sans jamais se
+                  réduire à une simple liste de conseils.
                 </p>
               </div>
 
@@ -145,22 +150,14 @@ function SceneBlock({ item, index }) {
                   <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
                     registre
                   </p>
-                  <p className="mt-2 text-white/88">sensoriel</p>
+                  <p className="mt-2 text-white/88">intime et sensoriel</p>
                 </div>
 
                 <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
                   <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
                     impression
                   </p>
-                  <p className="mt-2 text-white/88">
-                    {index === 0
-                      ? "puissance"
-                      : index === 1
-                        ? "respiration"
-                        : index === 2
-                          ? "densité"
-                          : "intimité"}
-                  </p>
+                  <p className="mt-2 text-white/88">{item.accent}</p>
                 </div>
               </div>
             </div>
@@ -171,12 +168,12 @@ function SceneBlock({ item, index }) {
   );
 }
 
-function EssenceCard({ item, i }) {
+function FacetCard({ item, i }) {
   return (
     <motion.article
       initial={{ opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.22 }}
+      viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.65, delay: i * 0.06 }}
       whileHover={{ y: -5 }}
       className="overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] shadow-[0_20px_70px_rgba(0,0,0,0.26)] backdrop-blur-xl"
@@ -189,12 +186,12 @@ function EssenceCard({ item, i }) {
           className="object-cover"
           sizes="(max-width: 1024px) 100vw, 33vw"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,16,0.04),rgba(8,10,16,0.34))]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,16,0.04),rgba(8,10,16,0.36))]" />
       </div>
 
       <div className="p-6">
-        <p className="text-[11px] uppercase tracking-[0.26em] text-white/38">
-          matière
+        <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">
+          fragment
         </p>
         <h3 className="mt-3 text-2xl text-white">{item.title}</h3>
         <p className="mt-3 leading-8 text-white/66">{item.text}</p>
@@ -229,13 +226,18 @@ export default function MartiniquePage() {
     loadAccess();
   }, [user]);
 
+  const ctaLabel = useMemo(() => {
+    if (checkingAccess) return "Vérification";
+    return hasAccess ? "déjà débloquée" : "immersive";
+  }, [checkingAccess, hasAccess]);
+
   return (
     <>
       <Header />
 
       <main className="page">
         <div className="container space-y-10">
-          <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] shadow-[0_28px_100px_rgba(0,0,0,0.34)]">
+          <section className="relative overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] shadow-[0_28px_100px_rgba(0,0,0,0.34)]">
             <div className="absolute inset-0 bg-[radial-gradient(900px_320px_at_8%_0%,rgba(212,176,96,0.10),transparent_58%),radial-gradient(900px_320px_at_100%_0%,rgba(68,196,224,0.08),transparent_60%)]" />
 
             <div className="grid items-center gap-8 px-6 py-8 sm:px-8 sm:py-10 lg:grid-cols-12 lg:px-10 lg:py-12">
@@ -246,26 +248,27 @@ export default function MartiniquePage() {
                 className="relative z-10 lg:col-span-5"
               >
                 <div className="flex flex-wrap gap-3">
-                  <span className="lux-chip">parcours immersif</span>
-                  <span className="lux-chip">regard éditorial</span>
+                  <span className="lux-chip">récit sensible</span>
                   <span className="lux-chip">martinique</span>
+                  <span className="lux-chip">sans tout dévoiler</span>
                 </div>
 
-                <p className="lux-kicker mt-8">une traversée sensible</p>
+                <p className="lux-kicker mt-8">un avant-goût de l’édition</p>
 
-                <h1 className="mt-4 text-[clamp(3rem,8vw,6.4rem)] leading-[0.92] tracking-[-0.05em] text-white">
-                  Une île qui change de visage à chaque pas.
+                <h1 className="mt-4 text-[clamp(3rem,8vw,6.2rem)] leading-[0.92] tracking-[-0.05em] text-white">
+                  Une île qui ne se laisse pas réduire à une carte postale.
                 </h1>
 
                 <p className="mt-8 max-w-2xl text-lg leading-9 text-white/68">
-                  Ici, la Martinique ne se résume pas à une vue. Elle apparaît
-                  par masses, par lumières, par respirations successives :
-                  minérale, marine, tropicale, urbaine, vivante.
+                  Cette page n’essaie pas de raconter tout le livre. Elle en
+                  laisse seulement apparaître la matière : le départ, l’arrivée,
+                  le rythme du quotidien, la puissance du paysage, et ce que
+                  l’île change à l’intérieur.
                 </p>
 
                 <div className="mt-10 flex flex-wrap gap-4">
                   <a href="#parcours" className="lux-btn lux-btn-gold">
-                    Commencer le parcours
+                    Explorer les fragments
                   </a>
 
                   {hasAccess ? (
@@ -291,27 +294,23 @@ export default function MartiniquePage() {
                 <div className="mt-12 grid gap-3 sm:grid-cols-3">
                   <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
                     <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
-                      sensation
+                      tonalité
                     </p>
-                    <p className="mt-2 text-white/88">ampleur</p>
+                    <p className="mt-2 text-white/88">intime</p>
                   </div>
+
                   <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
                     <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
-                      regard
+                      matière
                     </p>
-                    <p className="mt-2 text-white/88">cinématographique</p>
+                    <p className="mt-2 text-white/88">vécue</p>
                   </div>
+
                   <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
                     <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
                       lecture
                     </p>
-                    <p className="mt-2 text-white/88">
-                      {checkingAccess
-                        ? "vérification"
-                        : hasAccess
-                          ? "déjà débloquée"
-                          : "immersive"}
-                    </p>
+                    <p className="mt-2 text-white/88">{ctaLabel}</p>
                   </div>
                 </div>
               </motion.div>
@@ -322,7 +321,7 @@ export default function MartiniquePage() {
                 transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
                 className="relative z-10 lg:col-span-7"
               >
-                <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+                <div className="grid gap-4 lg:grid-cols-[1.02fr_0.98fr]">
                   <div className="space-y-4">
                     <div className="relative h-[240px] overflow-hidden rounded-[24px] border border-white/10">
                       <Image
@@ -337,8 +336,8 @@ export default function MartiniquePage() {
 
                     <div className="relative h-[340px] overflow-hidden rounded-[24px] border border-white/10">
                       <Image
-                        src="/media/martinique-ville.jpg"
-                        alt="Ville créole de Martinique"
+                        src="/media/martinique-rue.jpg"
+                        alt="Rue vivante de Martinique"
                         fill
                         className="object-cover"
                         sizes="(max-width: 1024px) 100vw, 40vw"
@@ -350,7 +349,7 @@ export default function MartiniquePage() {
                     <div className="relative h-[430px] overflow-hidden rounded-[24px] border border-white/10">
                       <Image
                         src="/media/martinique-anse.jpg"
-                        alt="Anse turquoise en Martinique"
+                        alt="Anse en Martinique"
                         fill
                         className="object-cover"
                         sizes="(max-width: 1024px) 100vw, 36vw"
@@ -358,13 +357,13 @@ export default function MartiniquePage() {
                     </div>
 
                     <div className="rounded-[22px] border border-white/10 bg-white/4 p-5">
-                      <p className="text-[11px] uppercase tracking-[0.26em] text-white/40">
-                        note d’intention
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">
+                        intention
                       </p>
                       <p className="mt-4 leading-8 text-white/70">
-                        Cette page ne montre pas la Martinique comme une
-                        brochure. Elle la laisse apparaître peu à peu, comme une
-                        suite de présences.
+                        Montrer l’île sans la réduire, donner envie d’ouvrir le
+                        livre sans en livrer tous les repères, les lieux ni les
+                        conseils qu’il contient.
                       </p>
                     </div>
                   </div>
@@ -377,7 +376,7 @@ export default function MartiniquePage() {
             id="parcours"
             className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4"
           >
-            {SCENES.map((item) => (
+            {JOURNEY.map((item) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
@@ -386,16 +385,16 @@ export default function MartiniquePage() {
                 <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">
                   {item.tag}
                 </p>
-                <p className="mt-3 text-lg text-white">
-                  {item.title.replace("Le ", "").replace("L’", "")}
+                <p className="mt-3 text-lg leading-7 text-white">
+                  {item.title}
                 </p>
               </a>
             ))}
           </section>
 
           <div className="space-y-12">
-            {SCENES.map((item, index) => (
-              <SceneBlock key={item.id} item={item} index={index} />
+            {JOURNEY.map((item, index) => (
+              <JourneyBlock key={item.id} item={item} index={index} />
             ))}
           </div>
 
@@ -408,20 +407,21 @@ export default function MartiniquePage() {
                 transition={{ duration: 0.7 }}
                 className="lg:col-span-4"
               >
-                <p className="lux-kicker">vie créole</p>
+                <p className="lux-kicker">ce que le livre laisse entrevoir</p>
                 <h2 className="mt-4 text-4xl leading-tight text-white sm:text-5xl">
-                  La Martinique existe aussi dans le mouvement.
+                  Une expérience plus large que le décor.
                 </h2>
                 <p className="mt-6 leading-8 text-white/66">
-                  Après les paysages, il fallait montrer la présence humaine :
-                  les façades, la rue, le rythme, les produits, les gestes. Le
-                  lieu devient alors pleinement habité.
+                  Il y a la beauté, bien sûr. Mais aussi l’installation, les
+                  habitudes à reconstruire, les contrastes de l’île, les
+                  découvertes, et la façon dont un lieu peut peu à peu
+                  transformer une personne.
                 </p>
               </motion.div>
 
               <div className="grid gap-4 lg:col-span-8 lg:grid-cols-3">
-                {ESSENCES.map((item, i) => (
-                  <EssenceCard key={item.title} item={item} i={i} />
+                {FACETS.map((item, i) => (
+                  <FacetCard key={item.title} item={item} i={i} />
                 ))}
               </div>
             </div>
@@ -435,10 +435,10 @@ export default function MartiniquePage() {
               viewport={{ once: true, amount: 0.28 }}
               transition={{ duration: 0.8 }}
             >
-              <div className="relative min-h-[360px] overflow-hidden rounded-[26px]">
+              <div className="relative min-h-[380px] overflow-hidden rounded-[26px]">
                 <Image
-                  src="/media/martinique-rue.jpg"
-                  alt="Rue vivante en Martinique"
+                  src="/media/martinique-foret.jpg"
+                  alt="Relief tropical en Martinique"
                   fill
                   className="object-cover object-center"
                   sizes="(max-width: 1024px) 100vw, 60vw"
@@ -448,10 +448,10 @@ export default function MartiniquePage() {
                 <div className="mq-bottom-accent" />
 
                 <div className="absolute inset-x-0 bottom-0 z-[3] p-6 sm:p-8">
-                  <p className="lux-kicker">finale</p>
+                  <p className="lux-kicker">dernière impression</p>
                   <p className="mt-3 max-w-2xl text-3xl leading-tight text-white sm:text-4xl">
-                    Un lieu devient inoubliable quand il mêle paysage, matière
-                    et vie humaine.
+                    Certaines îles se visitent. D’autres déplacent quelque chose
+                    en nous.
                   </p>
                 </div>
               </div>
@@ -470,8 +470,9 @@ export default function MartiniquePage() {
                   Entrer dans l’édition.
                 </h2>
                 <p className="mt-5 leading-8 text-white/66">
-                  Cette page ouvre une atmosphère. Le livre lui donne ensuite
-                  une continuité plus intime, plus littéraire, plus personnelle.
+                  Cette page ouvre une porte. Le livre, lui, va plus loin :
+                  installation, quotidien, nature, réalités, conseils et
+                  transformation personnelle s’y déploient avec plus d’intimité.
                 </p>
 
                 <div className="mt-8 flex flex-wrap gap-4">

@@ -12,13 +12,18 @@ import analyticsRoutes from "./routes/analytics.js";
 import paypalRoutes from "./routes/paypal.js";
 import orderRoutes from "./routes/orders.js";
 import readerRoutes from "./routes/reader.js";
+import contactRoutes from "./routes/contact.js";
 import { fail } from "./utils/http.js";
 
 const app = express();
 
 app.set("trust proxy", 1);
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 
 app.use(
   cors({
@@ -35,7 +40,7 @@ app.post(
   stripeWebhookHandler,
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api", dashboardRoutes);
@@ -44,8 +49,9 @@ app.use("/api", stripeRoutes);
 app.use("/api", paypalRoutes);
 app.use("/api", orderRoutes);
 app.use("/api", readerRoutes);
-app.use("/api/admin", adminRoutes);
 app.use("/api", analyticsRoutes);
+app.use("/api", contactRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((req, res) => fail(res, 404, "Not found"));
 

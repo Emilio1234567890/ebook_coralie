@@ -1,5 +1,5 @@
 "use client";
-// ebook-frontend/src/app/lib/auth.js
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { apiFetch, setToken, clearToken, getToken } from "./api";
 
@@ -47,7 +47,6 @@ export function AuthProvider({ children }) {
   async function logout() {
     clearToken();
     setUser(null);
-    setLoading(false);
   }
 
   useEffect(() => {

@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
+import { sendMail } from "../lib/mail.js";
+import { buildOrderConfirmationEmail } from "../lib/emailTemplates.js";
 import { requireAuth } from "../middleware/auth.js";
 import { asyncHandler, fail, ok } from "../utils/http.js";
 
@@ -59,6 +61,51 @@ async function getReusablePendingPaypalOrder(userId, productId) {
     orderBy: { createdAt: "desc" },
   });
 }
+
+async function sendOrderConfirmation(order) {
+  const user = await prisma.user.findUnique({
+    where: { id: order.userId },
+    select: { id: true, name: true, email: true },
+  });
+
+  const product = await prisma.product.findUnique({
+    where: { id: order.productId },
+    select: { name: true, priceCents: true, currency: true },
+  });
+
+  if (!user?.email || !product) return;
+
+  const priceLabel = `${(Number(order.amountCents || product.priceCents) / 100).toFixed(2).replace(".", ",")} ${String(order.currency || product.currency || "EUR").toUpperCase()}`;
+
+  const libraryUrl = `${process.env.FRONTEND_URL}/bibliotheque`;
+
+  const mail = buildOrderConfirmationEmail({
+    customerName: user.name,
+    productName: product.name,
+    priceLabel,
+    libraryUrl,
+  });
+
+  await sendMail({
+    to: user.email,
+    subject: mail.subject,
+    text: mail.text,
+    html: mail.html,
+  });
+}
+
+r.get(
+  "/paypal/config",
+  asyncHandler(async (req, res) => {
+    if (!process.env.PAYPAL_CLIENT_ID) {
+      return fail(res, 500, "PAYPAL_CLIENT_ID manquant.");
+    }
+
+    return ok(res, {
+      clientId: process.env.PAYPAL_CLIENT_ID,
+    });
+  }),
+);
 
 r.post(
   "/paypal/create-order",
@@ -220,6 +267,12 @@ r.post(
         source: "paypal",
       },
     });
+
+    try {
+      await sendOrderConfirmation(order);
+    } catch (e) {
+      console.error("Order confirmation email error:", e);
+    }
 
     return ok(res, { success: true });
   }),

@@ -112,9 +112,9 @@ export default function HomePage() {
                   variants={reveal}
                   className="flex flex-wrap gap-3"
                 >
-                  <span className="lux-chip">récit sensible</span>
+                  <span className="lux-chip">récit personnel</span>
                   <span className="lux-chip">accès privé</span>
-                  <span className="lux-chip">lecture numérique</span>
+                  <span className="lux-chip">édition numérique</span>
                 </motion.div>
 
                 <motion.p
@@ -130,7 +130,8 @@ export default function HomePage() {
                   variants={reveal}
                   className="lux-title mt-4 max-w-4xl"
                 >
-                  Un récit de lumière, d’exil intime et d’élégance tropicale.
+                  Un récit d’installation, de lumière, de réalités vécues et de
+                  transformation intérieure.
                 </motion.h1>
 
                 <motion.p
@@ -138,8 +139,10 @@ export default function HomePage() {
                   variants={reveal}
                   className="lux-subtitle mt-8 max-w-2xl"
                 >
-                  Une traversée délicate entre identité, sensations et mémoire,
-                  portée par l’atmosphère singulière de la Martinique.
+                  Plus qu’un simple ebook sur la Martinique, cette édition suit
+                  un mouvement intime : partir, s’adapter, découvrir l’île,
+                  affronter ses contrastes, puis se laisser transformer par ce
+                  qu’elle révèle.
                 </motion.p>
 
                 <motion.div
@@ -163,7 +166,7 @@ export default function HomePage() {
                   )}
 
                   <Link href="/martinique" className="lux-btn lux-btn-ghost">
-                    Entrer dans l’univers
+                    Explorer l’univers
                   </Link>
                 </motion.div>
 
@@ -216,13 +219,13 @@ export default function HomePage() {
                 <div className="relative mx-auto aspect-[4/5] max-w-[460px] overflow-hidden rounded-[34px] border border-white/10 bg-white/5 shadow-[0_40px_100px_rgba(0,0,0,0.45)]">
                   <Image
                     src="/media/hibiscus-sunset.jpg"
-                    alt="Couverture de l’ebook"
+                    alt="Univers de l’ebook Une béninoise en Martinique"
                     fill
                     className="object-cover"
                     priority
                   />
 
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,12,0.06),rgba(10,10,12,0.55))]" />
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,12,0.06),rgba(10,10,12,0.58))]" />
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(212,176,96,0.22),transparent_45%)]" />
 
                   <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
@@ -230,8 +233,9 @@ export default function HomePage() {
                       Une béninoise en Martinique
                     </p>
                     <p className="mt-3 max-w-sm text-sm leading-7 text-white/70">
-                      Une expérience de lecture intime, sensible et mémorable,
-                      accessible dans un espace privé.
+                      Une lecture intime et immersive, entre installation,
+                      culture, nature, réalités du quotidien et nouvelles
+                      perspectives.
                     </p>
                   </div>
                 </div>
@@ -241,16 +245,16 @@ export default function HomePage() {
 
           <section className="mt-8 grid gap-6 lg:grid-cols-3">
             <Detail
-              title="Une voix"
-              text="Une écriture incarnée, délicate et personnelle, loin des promesses marketing génériques."
+              title="Un départ"
+              text="Le livre part d’un vrai basculement : quitter un cadre connu pour construire une vie ailleurs."
             />
             <Detail
-              title="Une atmosphère"
-              text="La chaleur, la lumière, les textures et les contrastes deviennent une matière narrative."
+              title="Une île réelle"
+              text="La Martinique y apparaît belle, vivante, contrastée, sensible — jamais réduite à une simple image paradisiaque."
             />
             <Detail
-              title="Une pièce à garder"
-              text="Un format numérique pensé comme une œuvre à posséder, relire et retrouver à son rythme."
+              title="Une transformation"
+              text="Au fil des pages, le récit parle aussi d’autonomie, d’adaptation, de rythme de vie et de croissance personnelle."
             />
           </section>
 
@@ -264,13 +268,13 @@ export default function HomePage() {
             >
               <p className="lux-kicker">à propos de l’ouvrage</p>
               <h2 className="mt-4 text-4xl text-white">
-                Plus qu’un simple ebook.
+                Plus qu’un simple ebook sur la Martinique.
               </h2>
               <p className="mt-5 max-w-2xl leading-8 text-white/64">
-                Cette édition ne se présente pas comme un guide, ni comme une
-                fiche pratique. Elle s’approche davantage d’un objet littéraire
-                court : un espace de sensations, de déplacements intérieurs et
-                de présence.
+                Cette édition mêle récit personnel, installation, vie
+                quotidienne, nature, culture, réalités concrètes et bonnes
+                adresses. Elle se lit comme une traversée vécue, avec sa
+                douceur, ses contrastes et ses révélations.
               </p>
 
               <div className="mt-8 lux-divider" />
@@ -309,11 +313,11 @@ export default function HomePage() {
             >
               <p className="lux-kicker">accès</p>
               <h2 className="mt-4 text-3xl text-white">
-                Une acquisition simple, une présence durable.
+                Une acquisition simple, une lecture durable.
               </h2>
               <p className="mt-5 leading-8 text-white/64">
-                Après achat, l’accès est débloqué dans ton espace personnel pour
-                retrouver ton édition dans la bibliothèque privée.
+                Après achat, l’édition est débloquée dans ton espace personnel
+                et reste accessible depuis ta bibliothèque privée.
               </p>
 
               <div className="mt-8 space-y-4">

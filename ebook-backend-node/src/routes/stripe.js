@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { stripe } from "../lib/stripe.js";
 import { prisma } from "../lib/prisma.js";
+import { sendMail } from "../lib/mail.js";
+import { buildOrderConfirmationEmail } from "../lib/emailTemplates.js";
 import { requireAuth } from "../middleware/auth.js";
 import { asyncHandler, fail, ok } from "../utils/http.js";
 
@@ -32,10 +34,38 @@ async function getReusablePendingOrder(userId, productId) {
   });
 }
 
-/**
- * Crée ou réutilise un PaymentIntent Stripe
- * pour afficher seulement le formulaire carte Stripe (PaymentElement)
- */
+async function sendOrderConfirmation(order) {
+  const user = await prisma.user.findUnique({
+    where: { id: order.userId },
+    select: { id: true, name: true, email: true },
+  });
+
+  const product = await prisma.product.findUnique({
+    where: { id: order.productId },
+    select: { name: true, priceCents: true, currency: true },
+  });
+
+  if (!user?.email || !product) return;
+
+  const priceLabel = `${(Number(order.amountCents || product.priceCents) / 100).toFixed(2).replace(".", ",")} ${String(order.currency || product.currency || "EUR").toUpperCase()}`;
+
+  const libraryUrl = `${process.env.FRONTEND_URL}/bibliotheque`;
+
+  const mail = buildOrderConfirmationEmail({
+    customerName: user.name,
+    productName: product.name,
+    priceLabel,
+    libraryUrl,
+  });
+
+  await sendMail({
+    to: user.email,
+    subject: mail.subject,
+    text: mail.text,
+    html: mail.html,
+  });
+}
+
 r.post(
   "/stripe/payment-intent",
   requireAuth,
@@ -53,7 +83,6 @@ r.post(
 
     let order = await getReusablePendingOrder(req.user.id, product.id);
 
-    // Si on a déjà une commande pending avec un payment intent réutilisable
     if (order?.stripePaymentIntentId) {
       try {
         const existingPi = await stripe.paymentIntents.retrieve(
@@ -82,7 +111,6 @@ r.post(
       }
     }
 
-    // Sinon on crée une commande pending si besoin
     if (!order) {
       order = await prisma.order.create({
         data: {
@@ -96,7 +124,6 @@ r.post(
       });
     }
 
-    // On crée un PaymentIntent carte uniquement
     const paymentIntent = await stripe.paymentIntents.create({
       amount: product.priceCents,
       currency: String(product.currency || "eur").toLowerCase(),
@@ -123,9 +150,6 @@ r.post(
   }),
 );
 
-/**
- * Confirmation côté serveur après succès côté front
- */
 r.post(
   "/stripe/confirm-payment-intent",
   requireAuth,
@@ -162,6 +186,8 @@ r.post(
       return fail(res, 404, "Commande introuvable.");
     }
 
+    let justPaid = false;
+
     if (order.status !== "paid") {
       await prisma.order.update({
         where: { id: order.id },
@@ -195,16 +221,22 @@ r.post(
           source: "stripe",
         },
       });
+
+      justPaid = true;
+    }
+
+    if (justPaid) {
+      try {
+        await sendOrderConfirmation(order);
+      } catch (e) {
+        console.error("Order confirmation email error:", e);
+      }
     }
 
     return ok(res, { success: true });
   }),
 );
 
-/**
- * Webhook Stripe
- * Utile si un paiement finit en dehors du flow front
- */
 export const stripeWebhookHandler = asyncHandler(async (req, res) => {
   const sig = req.headers["stripe-signature"];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -262,6 +294,12 @@ export const stripeWebhookHandler = asyncHandler(async (req, res) => {
             source: "stripe",
           },
         });
+
+        try {
+          await sendOrderConfirmation(order);
+        } catch (e) {
+          console.error("Order confirmation email error:", e);
+        }
       }
     }
   }

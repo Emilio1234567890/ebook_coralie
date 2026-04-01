@@ -18,6 +18,17 @@ export default function BibliothequePage() {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [err, setErr] = useState(null);
   const [entered, setEntered] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    function updateViewport() {
+      setIsMobile(window.innerWidth < 768);
+    }
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   useEffect(() => {
     let objectUrl = null;
@@ -64,23 +75,33 @@ export default function BibliothequePage() {
     };
   }, []);
 
+  const immersiveMode = entered && isMobile;
+
   return (
     <>
-      <Header />
+      {!immersiveMode ? <Header /> : null}
 
-      <main className="page">
-        <div className="container">
-          <section className="reader-shell">
-            <div className="reader-topbar">
-              <div>
-                <p className="lux-kicker">bibliothèque</p>
-                <h1 className="reader-title">Lecture privée</h1>
-                <p className="reader-subtitle">
-                  Une expérience pensée comme une entrée dans le livre, pas
-                  comme un simple PDF brut.
-                </p>
+      <main
+        className={
+          immersiveMode ? "reader-page reader-page--immersive" : "page"
+        }
+      >
+        <div className={immersiveMode ? "reader-immersive-wrap" : "container"}>
+          <section
+            className={
+              immersiveMode
+                ? "reader-shell reader-shell--immersive"
+                : "reader-shell"
+            }
+          >
+            {!entered ? (
+              <div className="reader-topbar">
+                <div>
+                  <p className="lux-kicker">bibliothèque</p>
+                  <h1 className="reader-title">Lecture privée</h1>
+                </div>
               </div>
-            </div>
+            ) : null}
 
             {err ? <div className="reader-alert">{err}</div> : null}
 
@@ -91,6 +112,7 @@ export default function BibliothequePage() {
                 <p className="text-white/75">
                   Ton accès n’est pas encore actif.
                 </p>
+
                 <div className="mt-5">
                   <Link href="/checkout" className="lux-btn lux-btn-gold">
                     Aller au checkout
@@ -104,11 +126,6 @@ export default function BibliothequePage() {
                     <h2 className="book-entry__title">
                       Une béninoise en Martinique
                     </h2>
-                    <p className="book-entry__text">
-                      Entre dans la lecture comme on ouvre un ouvrage :
-                      lentement, visuellement, avec présence. Tu peux ensuite
-                      faire glisser les pages horizontalement.
-                    </p>
 
                     <div className="book-entry__actions">
                       <button
@@ -151,7 +168,11 @@ export default function BibliothequePage() {
                 </div>
               </div>
             ) : (
-              <PdfBookReader pdfUrl={pdfUrl} setErr={setErr} />
+              <PdfBookReader
+                pdfUrl={pdfUrl}
+                setErr={setErr}
+                onExit={() => setEntered(false)}
+              />
             )}
           </section>
         </div>

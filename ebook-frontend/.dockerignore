@@ -5,6 +5,4 @@ Dockerfile
 .dockerignore
 .git
 .gitignore
-.env
-.env.local
 coverage

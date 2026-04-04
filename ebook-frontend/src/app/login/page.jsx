@@ -38,12 +38,51 @@ function Input({
   );
 }
 
+function PasswordInput({
+  id,
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+  disabled,
+  required = false,
+  visible,
+  onToggle,
+}) {
+  return (
+    <div className="relative mt-2">
+      <input
+        id={id}
+        type={visible ? "text" : "password"}
+        required={required}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        disabled={disabled}
+        className="w-full rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] px-4 py-4 pr-[118px] text-white shadow-[0_12px_30px_rgba(0,0,0,0.16)] outline-none transition placeholder:text-white/28 hover:border-white/16 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] focus:border-[rgba(212,176,96,0.42)] focus:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.035))] focus:ring-4 focus:ring-[rgba(212,176,96,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
+      />
+
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={disabled}
+        className="absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-[14px] border border-white/10 bg-white/6 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-white/76 transition hover:border-white/16 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {visible ? "Cacher" : "Afficher"}
+      </button>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const [err, setErr] = useState(null);
   const [fields, setFields] = useState({});
@@ -123,15 +162,16 @@ export default function LoginPage() {
                   </Link>
                 </div>
 
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Ton mot de passe"
                   autoComplete="current-password"
                   disabled={busy}
+                  visible={showPassword}
+                  onToggle={() => setShowPassword((v) => !v)}
                 />
 
                 <FieldError>{fields.password}</FieldError>

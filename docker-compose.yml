@@ -32,10 +32,11 @@ services:
       context: ./ebook-frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://belenandcoco.com
-        PUBLIC_API_URL: https://belenandcoco.com
-        PUBLIC_PAYPAL_CLIENT_ID: ${PUBLIC_PAYPAL_CLIENT_ID}
-        PUBLIC_STRIPE_PUBLISHABLE_KEY: ${PUBLIC_STRIPE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_PAYPAL_CLIENT_ID: ${NEXT_PUBLIC_PAYPAL_CLIENT_ID}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+      environment:
+        NEXT_PUBLIC_PAYPAL_CLIENT_ID: ${NEXT_PUBLIC_PAYPAL_CLIENT_ID}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
     container_name: ebook-frontend
     restart: unless-stopped
     depends_on:

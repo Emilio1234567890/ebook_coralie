@@ -161,14 +161,33 @@ r.patch(
   asyncHandler(async (req, res) => {
     const data = req.body || {};
 
+    const name = String(data.name || "").trim();
+    const description =
+      data.description == null ? null : String(data.description).trim();
+    const filePath = String(data.filePath || "").trim();
+    const priceCents = Number(data.priceCents || 0);
+    const active = !!data.active;
+
+    if (!name) {
+      return fail(res, 422, "Le nom du produit est requis.");
+    }
+
+    if (!filePath) {
+      return fail(res, 422, "Le chemin du PDF est requis.");
+    }
+
+    if (!Number.isFinite(priceCents) || priceCents <= 0) {
+      return fail(res, 422, "Le prix doit être supérieur à 0.");
+    }
+
     const product = await prisma.product.update({
       where: { slug: "ebook" },
       data: {
-        name: String(data.name || "").trim(),
-        stripePriceId: String(data.stripePriceId || "").trim(),
-        priceCents: Number(data.priceCents || 0),
-        filePath: String(data.filePath || "").trim(),
-        active: !!data.active,
+        name,
+        description,
+        priceCents,
+        filePath,
+        active,
       },
     });
 

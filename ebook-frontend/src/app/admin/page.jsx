@@ -680,20 +680,6 @@ export default function AdminPage() {
                       </div>
 
                       <div>
-                        <label className="lux-label">Stripe Price ID</label>
-                        <input
-                          className="lux-input mt-2"
-                          value={product.stripePriceId || ""}
-                          onChange={(e) =>
-                            setProduct({
-                              ...product,
-                              stripePriceId: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-
-                      <div>
                         <label className="lux-label">Prix (centimes)</label>
                         <input
                           type="number"
@@ -708,7 +694,21 @@ export default function AdminPage() {
                         />
                       </div>
 
-                      <div>
+                      <div className="sm:col-span-2">
+                        <label className="lux-label">Description</label>
+                        <textarea
+                          className="lux-input mt-2 min-h-[120px]"
+                          value={product.description || ""}
+                          onChange={(e) =>
+                            setProduct({
+                              ...product,
+                              description: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
                         <label className="lux-label">Chemin PDF</label>
                         <input
                           className="lux-input mt-2"
@@ -762,6 +762,13 @@ export default function AdminPage() {
                           <p className="text-sm text-white/48">Prix affiché</p>
                           <p className="mt-2 text-white">
                             {euro(product.priceCents ?? 0)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-[18px] border border-white/10 bg-black/10 p-4">
+                          <p className="text-sm text-white/48">Description</p>
+                          <p className="mt-2 text-sm leading-7 text-white/72">
+                            {product.description || "Aucune description"}
                           </p>
                         </div>
 

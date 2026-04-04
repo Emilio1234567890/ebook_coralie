@@ -29,30 +29,29 @@ model User {
 }
 
 model Product {
-  id            Int      @id @default(autoincrement())
-  slug          String   @unique
-  name          String
-  description   String?
-  priceCents    Int
-  currency      String   @default("eur")
-  stripePriceId String
-  filePath      String
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  name        String
+  description String?
+  priceCents  Int
+  currency    String   @default("eur")
+  filePath    String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   orders       Order[]
   entitlements Entitlement[]
 }
 
 model Order {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   userId      Int
   productId   Int
   status      String
   amountCents Int
   currency    String
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
   paidAt      DateTime?
 
   stripeCheckoutSessionId String?
@@ -76,13 +75,13 @@ model Order {
 }
 
 model Entitlement {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   userId    Int
   productId Int
   orderId   Int?
-  active    Boolean   @default(true)
+  active    Boolean  @default(true)
   source    String?
-  grantedAt DateTime  @default(now())
+  grantedAt DateTime @default(now())
   revokedAt DateTime?
 
   user    User    @relation(fields: [userId], references: [id])
@@ -130,16 +129,16 @@ model PasswordResetToken {
 }
 
 model ContactMessage {
-  id           Int       @id @default(autoincrement())
-  name         String
-  email        String
-  subject      String
-  message      String    @db.LongText
-  adminReply   String?   @db.LongText
-  repliedAt    DateTime?
-  isRead       Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String
+  subject    String
+  message    String   @db.LongText
+  adminReply String?  @db.LongText
+  repliedAt  DateTime?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([createdAt])
   @@index([email])

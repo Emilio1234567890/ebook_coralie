@@ -73,6 +73,7 @@ r.get(
       product: {
         slug: product.slug,
         name: product.name,
+        description: product.description,
         priceCents: product.priceCents,
         currency: product.currency,
         active: product.active,

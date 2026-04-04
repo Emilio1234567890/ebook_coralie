@@ -3,19 +3,24 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const stripePriceId = process.env.STRIPE_PRICE_ID || "price_xxx";
   const filePath = process.env.EBOOK_FILE_PATH || "storage/ebook.pdf";
 
   await prisma.product.upsert({
     where: { slug: "ebook" },
-    update: {},
+    update: {
+      name: "Une béninoise en Martinique",
+      description: "eBook (PDF)",
+      priceCents: 1499,
+      currency: "eur",
+      filePath,
+      active: true,
+    },
     create: {
       slug: "ebook",
       name: "Une béninoise en Martinique",
       description: "eBook (PDF)",
       priceCents: 1499,
       currency: "eur",
-      stripePriceId,
       filePath,
       active: true,
     },

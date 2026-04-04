@@ -4,14 +4,16 @@ const prisma = new PrismaClient();
 
 async function main() {
   const filePath = process.env.EBOOK_FILE_PATH || "storage/ebook.pdf";
+  const priceCents = Number(process.env.EBOOK_PRICE_CENTS || 1499);
+  const currency = String(process.env.EBOOK_CURRENCY || "eur").toLowerCase();
 
   await prisma.product.upsert({
     where: { slug: "ebook" },
     update: {
       name: "Une béninoise en Martinique",
       description: "eBook (PDF)",
-      priceCents: 1499,
-      currency: "eur",
+      priceCents,
+      currency,
       filePath,
       active: true,
     },
@@ -19,8 +21,8 @@ async function main() {
       slug: "ebook",
       name: "Une béninoise en Martinique",
       description: "eBook (PDF)",
-      priceCents: 1499,
-      currency: "eur",
+      priceCents,
+      currency,
       filePath,
       active: true,
     },

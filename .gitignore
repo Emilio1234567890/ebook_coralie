@@ -24,6 +24,8 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+ebook-backend-node/.env
+ebook-frontend/.env.local
 
 # =========================
 # Node

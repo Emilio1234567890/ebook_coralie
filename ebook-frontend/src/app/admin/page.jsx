@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
 const MESSAGES_PER_PAGE = 5;
+const USERS_PER_PAGE = 8;
 
 function euro(cents = 0) {
   return (Number(cents) / 100).toFixed(2).replace(".", ",") + " €";
@@ -240,7 +241,9 @@ export default function AdminPage() {
   const [overview, setOverview] = useState(null);
   const [product, setProduct] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [replySubject, setReplySubject] = useState("");
   const [replyHtml, setReplyHtml] = useState("");
@@ -251,16 +254,19 @@ export default function AdminPage() {
   const [messageQuery, setMessageQuery] = useState("");
   const [messageFilter, setMessageFilter] = useState("all");
   const [messagePage, setMessagePage] = useState(1);
+  const [userQuery, setUserQuery] = useState("");
+  const [userPage, setUserPage] = useState(1);
 
   async function load() {
     setErr(null);
 
     try {
-      const [a, p, o, m] = await Promise.all([
+      const [a, p, o, m, u] = await Promise.all([
         apiFetch("/api/admin/overview"),
         apiFetch("/api/admin/products"),
         apiFetch("/api/admin/orders"),
         apiFetch("/api/admin/contact-messages"),
+        apiFetch("/api/admin/users"),
       ]);
 
       const next = {
@@ -268,12 +274,28 @@ export default function AdminPage() {
         product: p.product,
         orders: o.orders || [],
         messages: m.messages || [],
+        users: u.users || [],
       };
 
       setOverview(next.overview);
       setProduct(next.product);
       setOrders(next.orders);
       setMessages(next.messages);
+      setUsers(next.users);
+
+      if (selectedUser) {
+        const freshUser = next.users.find(
+          (item) => item.id === selectedUser.id,
+        );
+        setSelectedUser(freshUser || null);
+      }
+
+      if (selectedMessage) {
+        const freshMessage = next.messages.find(
+          (item) => item.id === selectedMessage.id,
+        );
+        setSelectedMessage(freshMessage || null);
+      }
 
       return next;
     } catch (e) {
@@ -301,6 +323,60 @@ export default function AdminPage() {
       setNotice("La configuration du livre a bien été sauvegardée.");
     } catch (e) {
       setErr(e.message || "Impossible de sauvegarder le produit.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function makeAdmin(user) {
+    const confirmed = window.confirm(
+      `Confirmer le passage en admin de ${user.name} (${user.email}) ?`,
+    );
+
+    if (!confirmed) return;
+
+    setBusy(true);
+    setErr(null);
+    setNotice(null);
+
+    try {
+      await apiFetch(`/api/admin/users/${user.id}/make-admin`, {
+        method: "POST",
+      });
+
+      await load();
+      setNotice(`${user.email} est maintenant admin.`);
+    } catch (e) {
+      setErr(e.message || "Impossible de passer cet utilisateur en admin.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteUser(user) {
+    const confirmed = window.confirm(
+      `Supprimer ${user.name} (${user.email}) ?\n\nCette action supprimera aussi ses commandes et ses accès.`,
+    );
+
+    if (!confirmed) return;
+
+    setBusy(true);
+    setErr(null);
+    setNotice(null);
+
+    try {
+      await apiFetch(`/api/admin/users/${user.id}`, {
+        method: "DELETE",
+      });
+
+      if (selectedUser?.id === user.id) {
+        setSelectedUser(null);
+      }
+
+      await load();
+      setNotice(`${user.email} a bien été supprimé.`);
+    } catch (e) {
+      setErr(e.message || "Impossible de supprimer cet utilisateur.");
     } finally {
       setBusy(false);
     }
@@ -449,10 +525,53 @@ export default function AdminPage() {
     return filteredMessages.slice(start, start + MESSAGES_PER_PAGE);
   }, [filteredMessages, messagePage]);
 
-  const visiblePages = useMemo(
+  const visibleMessagePages = useMemo(
     () => getVisiblePages(messagePage, totalMessagePages),
     [messagePage, totalMessagePages],
   );
+
+  useEffect(() => {
+    setUserPage(1);
+  }, [userQuery]);
+
+  const filteredUsers = useMemo(() => {
+    const q = userQuery.trim().toLowerCase();
+
+    return users.filter((user) => {
+      if (!q) return true;
+      return [user.name, user.email]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [users, userQuery]);
+
+  const totalUserPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / USERS_PER_PAGE),
+  );
+
+  useEffect(() => {
+    if (userPage > totalUserPages) {
+      setUserPage(totalUserPages);
+    }
+  }, [userPage, totalUserPages]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (userPage - 1) * USERS_PER_PAGE;
+    return filteredUsers.slice(start, start + USERS_PER_PAGE);
+  }, [filteredUsers, userPage]);
+
+  const visibleUserPages = useMemo(
+    () => getVisiblePages(userPage, totalUserPages),
+    [userPage, totalUserPages],
+  );
+
+  const selectedUserOrders = useMemo(() => {
+    if (!selectedUser) return [];
+    return orders.filter((order) => order.user?.id === selectedUser.id);
+  }, [orders, selectedUser]);
 
   const totalVisitors =
     overview?.analytics?.uniqueVisitors30d ??
@@ -507,9 +626,8 @@ export default function AdminPage() {
                   <p className="lux-kicker">administration</p>
                   <h1 className="lux-title mt-3">Pilotage</h1>
                   <p className="mt-4 max-w-2xl text-white/70">
-                    Suivi des ventes, des visiteurs, des pays, des messages
-                    contact et de la configuration du produit dans une interface
-                    plus claire et plus agréable à utiliser.
+                    Suivi des ventes, visiteurs, messages, utilisateurs et
+                    configuration du produit.
                   </p>
                 </div>
 
@@ -522,9 +640,9 @@ export default function AdminPage() {
                   </div>
                   <div className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-3">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">
-                      Réponses
+                      Utilisateurs
                     </p>
-                    <p className="mt-2 text-xl text-white">{repliedCount}</p>
+                    <p className="mt-2 text-xl text-white">{users.length}</p>
                   </div>
                 </div>
               </div>
@@ -587,7 +705,7 @@ export default function AdminPage() {
                 <SectionCard
                   kicker="traffic"
                   title="Top pays"
-                  description="Répartition des visiteurs par pays pour identifier les zones qui performent le mieux."
+                  description="Pays affichés en toutes lettres avec le nombre de visiteurs uniques."
                   className="lg:col-span-6"
                 >
                   {analytics?.topCountries?.length ? (
@@ -599,7 +717,7 @@ export default function AdminPage() {
                         >
                           <div>
                             <p className="text-white">
-                              {item.country || item.countryCode || "Inconnu"}
+                              {item.country || "Inconnu"}
                             </p>
                             <p className="mt-1 text-xs uppercase tracking-[0.18em] text-white/40">
                               {item.countryCode || "—"}
@@ -619,7 +737,7 @@ export default function AdminPage() {
                 <SectionCard
                   kicker="traffic"
                   title="Pages les plus vues"
-                  description="Aide à voir quels contenus attirent le plus l’attention et où concentrer l’optimisation."
+                  description="Aide à voir quels contenus attirent le plus l’attention."
                   className="lg:col-span-6"
                 >
                   {analytics?.topPages?.length ? (
@@ -645,6 +763,264 @@ export default function AdminPage() {
                   )}
                 </SectionCard>
               </section>
+
+              <SectionCard
+                kicker="utilisateurs"
+                title="Liste des utilisateurs"
+                description="Voir les comptes, la date de création, les achats, passer un compte admin ou le supprimer."
+              >
+                <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+                  <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                    <div className="mb-4">
+                      <input
+                        type="text"
+                        value={userQuery}
+                        onChange={(e) => setUserQuery(e.target.value)}
+                        placeholder="Rechercher par nom ou email..."
+                        className="w-full rounded-[16px] border border-white/10 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[rgba(212,176,96,0.28)] focus:bg-white/[0.07]"
+                      />
+                    </div>
+
+                    {!paginatedUsers.length ? (
+                      <div className="rounded-[20px] border border-dashed border-white/10 bg-white/[0.03] px-6 py-10 text-center text-white/55">
+                        Aucun utilisateur trouvé.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {paginatedUsers.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => setSelectedUser(user)}
+                            className={[
+                              "w-full rounded-[20px] border p-4 text-left transition",
+                              selectedUser?.id === user.id
+                                ? "border-[rgba(212,176,96,0.28)] bg-[rgba(212,176,96,0.08)]"
+                                : "border-white/10 bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.05)]",
+                            ].join(" ")}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm text-white/88">
+                                {initials(user.name)}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate font-medium text-white">
+                                      {user.name}
+                                    </p>
+                                    <p className="mt-1 truncate text-sm text-white/58">
+                                      {user.email}
+                                    </p>
+                                  </div>
+
+                                  {user.isAdmin ? (
+                                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-emerald-200">
+                                      admin
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/55">
+                                      user
+                                    </span>
+                                  )}
+                                </div>
+
+                                <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-white/34">
+                                  créé le {formatDate(user.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-white/38">
+                        Page {userPage} sur {totalUserPages}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <PagerButton
+                          disabled={userPage <= 1}
+                          onClick={() => setUserPage((p) => Math.max(1, p - 1))}
+                        >
+                          Préc.
+                        </PagerButton>
+
+                        <div className="flex items-center gap-2">
+                          {visibleUserPages.map((page, index) => {
+                            const prev = visibleUserPages[index - 1];
+                            const showDots = prev && page - prev > 1;
+
+                            return (
+                              <div
+                                key={page}
+                                className="flex items-center gap-2"
+                              >
+                                {showDots ? (
+                                  <span className="px-1 text-white/28">…</span>
+                                ) : null}
+
+                                <PageNumberButton
+                                  page={page}
+                                  active={page === userPage}
+                                  onClick={setUserPage}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <PagerButton
+                          disabled={userPage >= totalUserPages}
+                          onClick={() =>
+                            setUserPage((p) => Math.min(totalUserPages, p + 1))
+                          }
+                        >
+                          Suiv.
+                        </PagerButton>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-5">
+                    <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
+                      {!selectedUser ? (
+                        <div className="flex min-h-[220px] items-center justify-center text-center text-white/55">
+                          Sélectionne un utilisateur pour voir ses infos, ses
+                          achats et les actions disponibles.
+                        </div>
+                      ) : (
+                        <div className="space-y-5">
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                              <p className="text-2xl text-white">
+                                {selectedUser.name}
+                              </p>
+                              <p className="mt-2 text-white/60">
+                                {selectedUser.email}
+                              </p>
+                              <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-white/34">
+                                Compte créé le{" "}
+                                {formatDate(selectedUser.createdAt)}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {!selectedUser.isAdmin ? (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => makeAdmin(selectedUser)}
+                                  className="lux-btn lux-btn-gold"
+                                >
+                                  Mettre admin
+                                </button>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-emerald-200">
+                                  Déjà admin
+                                </span>
+                              )}
+
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => deleteUser(selectedUser)}
+                                className="inline-flex min-h-[50px] items-center justify-center rounded-[14px] border border-rose-400/20 bg-rose-400/10 px-5 text-[11px] uppercase tracking-[0.18em] text-rose-200 transition hover:bg-rose-400/14 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-4 md:grid-cols-3">
+                            <SmallInfoCard
+                              label="Commandes"
+                              value={selectedUserOrders.length}
+                              hint="Historique total"
+                            />
+                            <SmallInfoCard
+                              label="Accès"
+                              value={selectedUser._count?.entitlements || 0}
+                              hint="Entrées entitlement"
+                            />
+                            <SmallInfoCard
+                              label="Rôle"
+                              value={selectedUser.isAdmin ? "Admin" : "User"}
+                              hint="Niveau du compte"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedUser ? (
+                      <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                          <p className="text-lg text-white">
+                            Achats de cet utilisateur
+                          </p>
+                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/55">
+                            {selectedUserOrders.length}
+                          </span>
+                        </div>
+
+                        {!selectedUserOrders.length ? (
+                          <p className="text-white/55">
+                            Aucun achat pour ce compte.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {selectedUserOrders.map((order) => (
+                              <div
+                                key={order.id}
+                                className="rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.03)] p-4"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-4">
+                                  <div>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <p className="font-medium text-white">
+                                        Commande #{order.id}
+                                      </p>
+                                      <OrderStatusPill status={order.status} />
+                                    </div>
+
+                                    <p className="mt-2 text-sm text-white/55">
+                                      {order.product?.name || "Produit"} —{" "}
+                                      {euro(order.amountCents)}
+                                    </p>
+
+                                    <p className="mt-2 text-sm text-white/45">
+                                      {order.paidAt
+                                        ? `Payé le ${formatDate(order.paidAt)}`
+                                        : `Créé le ${formatDate(order.createdAt)}`}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2">
+                                    {order.receiptUrl ? (
+                                      <a
+                                        href={order.receiptUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex min-h-[42px] items-center justify-center rounded-[12px] border border-white/10 bg-white/5 px-4 text-[10px] uppercase tracking-[0.18em] text-white/78 transition hover:bg-white/8"
+                                      >
+                                        Voir facture Stripe
+                                      </a>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </SectionCard>
 
               <SectionCard
                 kicker="produit"
@@ -947,8 +1323,8 @@ export default function AdminPage() {
                           </PagerButton>
 
                           <div className="flex items-center gap-2">
-                            {visiblePages.map((page, index) => {
-                              const prev = visiblePages[index - 1];
+                            {visibleMessagePages.map((page, index) => {
+                              const prev = visibleMessagePages[index - 1];
                               const showDots = prev && page - prev > 1;
 
                               return (
@@ -1158,13 +1534,26 @@ export default function AdminPage() {
                             </p>
                           </div>
 
-                          <div className="rounded-[18px] border border-white/10 bg-white/4 px-4 py-3 text-right">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">
-                              total
-                            </p>
-                            <p className="mt-1 text-lg text-white">
-                              {euro(o.amountCents)}
-                            </p>
+                          <div className="flex flex-wrap items-center gap-3">
+                            {o.receiptUrl ? (
+                              <a
+                                href={o.receiptUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex min-h-[42px] items-center justify-center rounded-[12px] border border-white/10 bg-white/5 px-4 text-[10px] uppercase tracking-[0.18em] text-white/78 transition hover:bg-white/8"
+                              >
+                                Facture Stripe
+                              </a>
+                            ) : null}
+
+                            <div className="rounded-[18px] border border-white/10 bg-white/4 px-4 py-3 text-right">
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">
+                                total
+                              </p>
+                              <p className="mt-1 text-lg text-white">
+                                {euro(o.amountCents)}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </motion.div>

@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import AuthShell from "@/components/AuthShell";
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 function passwordRules(pw) {
   const s = String(pw || "");
@@ -16,6 +17,49 @@ function passwordRules(pw) {
   ];
 }
 
+function PasswordField({
+  id,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  visible,
+  onToggle,
+}) {
+  return (
+    <div className="relative mt-2">
+      <input
+        id={id}
+        type={visible ? "text" : "password"}
+        required
+        className="w-full rounded-[16px] border border-white/12 bg-[rgba(255,255,255,0.04)] px-4 py-4 pr-[70px] text-white outline-none transition placeholder:text-white/28 focus:border-[rgba(212,176,96,0.42)] focus:bg-[rgba(255,255,255,0.06)] focus:ring-4 focus:ring-[rgba(212,176,96,0.08)]"
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        autoComplete="new-password"
+      />
+
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={disabled}
+        aria-label={
+          visible ? "Masquer le mot de passe" : "Afficher le mot de passe"
+        }
+        title={visible ? "Masquer" : "Afficher"}
+        className="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(212,176,96,0.35)] bg-[rgba(10,14,22,0.82)] text-[rgba(245,224,175,0.98)] shadow-[0_8px_20px_rgba(0,0,0,0.22)] transition hover:scale-[1.03] hover:border-[rgba(245,224,175,0.55)] hover:bg-[rgba(16,22,34,0.95)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {visible ? (
+          <EyeOff size={18} strokeWidth={2.2} />
+        ) : (
+          <Eye size={18} strokeWidth={2.2} />
+        )}
+      </button>
+    </div>
+  );
+}
+
 function ResetPasswordContent() {
   const params = useSearchParams();
   const router = useRouter();
@@ -24,6 +68,8 @@ function ResetPasswordContent() {
 
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword2, setShowPassword2] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [done, setDone] = useState(null);
@@ -108,16 +154,14 @@ function ResetPasswordContent() {
               Nouveau mot de passe
             </label>
 
-            <input
+            <PasswordField
               id="password"
-              type="password"
-              required
-              className="mt-2 w-full rounded-[16px] border border-white/12 bg-[rgba(255,255,255,0.04)] px-4 py-4 text-white outline-none transition placeholder:text-white/28 focus:border-[rgba(212,176,96,0.42)] focus:bg-[rgba(255,255,255,0.06)] focus:ring-4 focus:ring-[rgba(212,176,96,0.08)]"
-              placeholder="Nouveau mot de passe"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Nouveau mot de passe"
               disabled={busy}
-              autoComplete="new-password"
+              visible={showPassword}
+              onToggle={() => setShowPassword((v) => !v)}
             />
 
             {fields.password ? (
@@ -150,16 +194,14 @@ function ResetPasswordContent() {
               Confirmer le mot de passe
             </label>
 
-            <input
+            <PasswordField
               id="password2"
-              type="password"
-              required
-              className="mt-2 w-full rounded-[16px] border border-white/12 bg-[rgba(255,255,255,0.04)] px-4 py-4 text-white outline-none transition placeholder:text-white/28 focus:border-[rgba(212,176,96,0.42)] focus:bg-[rgba(255,255,255,0.06)] focus:ring-4 focus:ring-[rgba(212,176,96,0.08)]"
-              placeholder="Confirme ton mot de passe"
               value={password2}
               onChange={(e) => setPassword2(e.target.value)}
+              placeholder="Confirme ton mot de passe"
               disabled={busy}
-              autoComplete="new-password"
+              visible={showPassword2}
+              onToggle={() => setShowPassword2((v) => !v)}
             />
 
             {fields.password2 ? (

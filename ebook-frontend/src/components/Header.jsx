@@ -121,7 +121,6 @@ export function Header() {
             </div>
 
             <div className="min-w-0">
-              <p className="site-brand-kicker">maison digitale</p>
               <p className="site-brand-title">Une béninoise en Martinique</p>
             </div>
           </Link>

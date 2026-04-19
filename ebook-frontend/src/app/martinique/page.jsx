@@ -15,7 +15,6 @@ const JOURNEY = [
     title: "Tout commence par une décision intérieure.",
     text: "Avant la beauté du décor, il y a ce moment suspendu où l’on quitte un rythme, une ville, des habitudes. La Martinique n’apparaît pas seulement comme une destination : elle commence comme un mouvement, une bascule, une promesse.",
     img: "/media/martinique-horizon.jpg",
-    accent: "élan",
   },
   {
     id: "arrivee",
@@ -23,7 +22,6 @@ const JOURNEY = [
     title: "Puis l’île se révèle par la chaleur, la lumière, l’accueil.",
     text: "Les premiers jours ne ressemblent pas à une brochure. Ils ont la texture du réel : une lumière différente, une énergie nouvelle, des visages, des rues, une sensation très nette d’entrer ailleurs sans totalement se perdre.",
     img: "/media/martinique-ville.jpg",
-    accent: "présence",
   },
   {
     id: "lifestyle",
@@ -31,7 +29,6 @@ const JOURNEY = [
     title: "Très vite, il faut apprendre un autre tempo.",
     text: "La Martinique se vit aussi dans les trajets, les habitudes, le coût des choses, les rencontres, les ajustements. C’est là que l’expérience devient plus profonde : elle oblige à observer, ralentir, comprendre autrement.",
     img: "/media/martinique-rue.jpg",
-    accent: "adaptation",
   },
   {
     id: "nature",
@@ -39,7 +36,6 @@ const JOURNEY = [
     title: "Et soudain, la nature reprend toute la place.",
     text: "Reliefs, anses, plages, forêt, souffle marin : l’île offre constamment plus que de jolies images. Elle impose une relation sensible au paysage, presque physique, comme si l’on apprenait à habiter le décor autant qu’à le regarder.",
     img: "/media/martinique-anse.jpg",
-    accent: "respiration",
   },
 ];
 
@@ -143,22 +139,6 @@ function JourneyBlock({ item, index }) {
                   quotidien et transformations intérieures, sans jamais se
                   réduire à une simple liste de conseils.
                 </p>
-              </div>
-
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
-                    registre
-                  </p>
-                  <p className="mt-2 text-white/88">intime et sensoriel</p>
-                </div>
-
-                <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
-                    impression
-                  </p>
-                  <p className="mt-2 text-white/88">{item.accent}</p>
-                </div>
               </div>
             </div>
           </div>
@@ -290,29 +270,6 @@ export default function MartiniquePage() {
                     Ton ebook est déjà disponible dans ta bibliothèque.
                   </div>
                 ) : null}
-
-                <div className="mt-12 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
-                      tonalité
-                    </p>
-                    <p className="mt-2 text-white/88">intime</p>
-                  </div>
-
-                  <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
-                      matière
-                    </p>
-                    <p className="mt-2 text-white/88">vécue</p>
-                  </div>
-
-                  <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
-                      lecture
-                    </p>
-                    <p className="mt-2 text-white/88">{ctaLabel}</p>
-                  </div>
-                </div>
               </motion.div>
 
               <motion.div

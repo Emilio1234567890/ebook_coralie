@@ -6,6 +6,7 @@ import { useAuth } from "@/app/lib/auth";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 
 function policy(pw) {
   const s = String(pw || "");
@@ -73,16 +74,24 @@ function PasswordInput({
         placeholder={placeholder}
         autoComplete={autoComplete}
         disabled={disabled}
-        className="w-full rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] px-4 py-4 pr-[118px] text-white shadow-[0_12px_30px_rgba(0,0,0,0.16)] outline-none transition placeholder:text-white/28 hover:border-white/16 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] focus:border-[rgba(212,176,96,0.42)] focus:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.035))] focus:ring-4 focus:ring-[rgba(212,176,96,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] px-4 py-4 pr-[70px] text-white shadow-[0_12px_30px_rgba(0,0,0,0.16)] outline-none transition placeholder:text-white/28 hover:border-white/16 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] focus:border-[rgba(212,176,96,0.42)] focus:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.035))] focus:ring-4 focus:ring-[rgba(212,176,96,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
       />
 
       <button
         type="button"
         onClick={onToggle}
         disabled={disabled}
-        className="absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-[14px] border border-white/10 bg-white/6 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-white/76 transition hover:border-white/16 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+        aria-label={
+          visible ? "Masquer le mot de passe" : "Afficher le mot de passe"
+        }
+        title={visible ? "Masquer" : "Afficher"}
+        className="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(212,176,96,0.35)] bg-[rgba(10,14,22,0.82)] text-[rgba(245,224,175,0.98)] shadow-[0_8px_20px_rgba(0,0,0,0.22)] transition hover:scale-[1.03] hover:border-[rgba(245,224,175,0.55)] hover:bg-[rgba(16,22,34,0.95)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {visible ? "Cacher" : "Afficher"}
+        {visible ? (
+          <EyeOff size={18} strokeWidth={2.2} />
+        ) : (
+          <Eye size={18} strokeWidth={2.2} />
+        )}
       </button>
     </div>
   );

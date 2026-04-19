@@ -20,6 +20,33 @@ function sign(user) {
   );
 }
 
+function normalizeUrl(value = "") {
+  return String(value || "")
+    .trim()
+    .replace(/\/+$/, "");
+}
+
+function getAppUrl() {
+  const appUrl = normalizeUrl(process.env.APP_URL || "");
+  if (appUrl) return appUrl;
+
+  const frontendRaw = String(process.env.FRONTEND_URL || "").trim();
+  if (!frontendRaw) {
+    throw new Error("Missing APP_URL or FRONTEND_URL");
+  }
+
+  const firstFrontend = frontendRaw
+    .split(",")
+    .map((item) => normalizeUrl(item))
+    .find(Boolean);
+
+  if (!firstFrontend) {
+    throw new Error("Missing APP_URL or FRONTEND_URL");
+  }
+
+  return firstFrontend;
+}
+
 async function enrichUser(user) {
   const product = await prisma.product.findUnique({
     where: { slug: "ebook" },
@@ -206,9 +233,7 @@ r.post(
       },
     });
 
-    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL;
-    if (!appUrl) throw new Error("Missing APP_URL or FRONTEND_URL");
-
+    const appUrl = getAppUrl();
     const resetUrl = `${appUrl}/reset-password?token=${rawToken}`;
 
     await sendMail({

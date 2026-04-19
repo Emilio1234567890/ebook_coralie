@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
+import { stripe } from "../lib/stripe.js";
 import { sendMail } from "../lib/mail.js";
 import { buildAdminReplyEmail } from "../lib/emailTemplates.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
@@ -8,6 +9,35 @@ import { asyncHandler, fail, ok } from "../utils/http.js";
 const r = Router();
 
 r.use(requireAuth, requireAdmin);
+
+function countryNameFromCode(code) {
+  if (!code || code === "??" || code === "XX") return "Inconnu";
+
+  try {
+    const display = new Intl.DisplayNames(["fr"], { type: "region" });
+    return display.of(code.toUpperCase()) || code.toUpperCase();
+  } catch {
+    return code.toUpperCase();
+  }
+}
+
+async function getStripeReceiptUrl(order) {
+  try {
+    if (!order?.stripePaymentIntentId) return null;
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      order.stripePaymentIntentId,
+      {
+        expand: ["latest_charge"],
+      },
+    );
+
+    const receiptUrl = paymentIntent?.latest_charge?.receipt_url;
+    return receiptUrl || null;
+  } catch {
+    return null;
+  }
+}
 
 r.get(
   "/overview",
@@ -25,10 +55,9 @@ r.get(
       ordersPaid,
       paidOrders,
       buyersCount,
-      uniqueVisitorsRows,
+      visits30d,
       views7d,
       views30d,
-      topCountriesRaw,
       topPagesRaw,
       totalMessages,
       unreadMessages,
@@ -51,6 +80,7 @@ r.get(
         },
         select: {
           ipHash: true,
+          countryCode: true,
         },
       }),
       prisma.visit.count({
@@ -62,21 +92,6 @@ r.get(
         where: {
           createdAt: { gte: d30 },
         },
-      }),
-      prisma.visit.groupBy({
-        by: ["countryCode"],
-        where: {
-          createdAt: { gte: d30 },
-        },
-        _count: {
-          countryCode: true,
-        },
-        orderBy: {
-          _count: {
-            countryCode: "desc",
-          },
-        },
-        take: 8,
       }),
       prisma.visit.groupBy({
         by: ["path"],
@@ -109,15 +124,30 @@ r.get(
       0,
     );
 
-    const uniqueVisitors30d = new Set(
-      uniqueVisitorsRows.map((v) => v.ipHash).filter(Boolean),
-    ).size;
+    const uniqueVisitorsSet = new Set();
+    const countryMap = new Map();
 
-    const topCountries = topCountriesRaw.map((item) => ({
-      countryCode: item.countryCode || "??",
-      country: item.countryCode || "Inconnu",
-      count: item._count.countryCode,
-    }));
+    for (const visit of visits30d) {
+      const code = (visit.countryCode || "XX").toUpperCase();
+      const key = visit.ipHash || `anonymous-${Math.random()}`;
+
+      uniqueVisitorsSet.add(key);
+
+      if (!countryMap.has(code)) {
+        countryMap.set(code, new Set());
+      }
+
+      countryMap.get(code).add(key);
+    }
+
+    const topCountries = Array.from(countryMap.entries())
+      .map(([countryCode, visitorSet]) => ({
+        countryCode,
+        country: countryNameFromCode(countryCode),
+        count: visitorSet.size,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
 
     const topPages = topPagesRaw.map((item) => ({
       path: item.path || "/",
@@ -135,7 +165,7 @@ r.get(
         replied: repliedMessages,
       },
       analytics: {
-        uniqueVisitors30d,
+        uniqueVisitors30d: uniqueVisitorsSet.size,
         views7d,
         views30d,
         topCountries,
@@ -207,6 +237,7 @@ r.get(
             id: true,
             email: true,
             name: true,
+            createdAt: true,
           },
         },
         product: {
@@ -219,7 +250,110 @@ r.get(
       },
     });
 
-    return ok(res, { orders });
+    const ordersWithReceipt = await Promise.all(
+      orders.map(async (order) => ({
+        ...order,
+        receiptUrl:
+          order.paymentProvider === "stripe"
+            ? await getStripeReceiptUrl(order)
+            : null,
+      })),
+    );
+
+    return ok(res, { orders: ordersWithReceipt });
+  }),
+);
+
+r.get(
+  "/users",
+  asyncHandler(async (req, res) => {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isAdmin: true,
+        createdAt: true,
+        _count: {
+          select: {
+            orders: true,
+            entitlements: true,
+          },
+        },
+      },
+    });
+
+    return ok(res, { users });
+  }),
+);
+
+r.post(
+  "/users/:id/make-admin",
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id || 0);
+    if (!id) return fail(res, 400, "ID invalide.");
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, isAdmin: true },
+    });
+
+    if (!user) {
+      return fail(res, 404, "Utilisateur introuvable.");
+    }
+
+    if (user.isAdmin) {
+      return ok(res, { success: true, user });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { isAdmin: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isAdmin: true,
+        createdAt: true,
+      },
+    });
+
+    return ok(res, { success: true, user: updated });
+  }),
+);
+
+r.delete(
+  "/users/:id",
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id || 0);
+    if (!id) return fail(res, 400, "ID invalide.");
+
+    if (req.user.id === id) {
+      return fail(
+        res,
+        409,
+        "Tu ne peux pas supprimer ton propre compte admin.",
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      return fail(res, 404, "Utilisateur introuvable.");
+    }
+
+    await prisma.$transaction([
+      prisma.passwordResetToken.deleteMany({ where: { userId: id } }),
+      prisma.entitlement.deleteMany({ where: { userId: id } }),
+      prisma.order.deleteMany({ where: { userId: id } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+
+    return ok(res, { success: true });
   }),
 );
 

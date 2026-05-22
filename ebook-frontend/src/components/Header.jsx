@@ -14,27 +14,16 @@ export function Header() {
   const [showBar, setShowBar] = useState(true);
   const [logoutBusy, setLogoutBusy] = useState(false);
 
-  const hasEbookAccess = Boolean(user?.hasEbookAccess);
-
-  const navItems = useMemo(() => {
-    const items = [
+  const navItems = useMemo(
+    () => [
       { href: "/", label: "Accueil" },
       { href: "/martinique", label: "Martinique" },
-    ];
-
-    if (hasEbookAccess) {
-      items.push({ href: "/bibliotheque", label: "Bibliothèque" });
-    } else {
-      items.push({ href: "/#acheter", label: "Acheter" });
-    }
-
-    items.push(
+      { href: "/bibliotheque", label: "Bibliothèque" },
       { href: "/contact", label: "Contact" },
       { href: "/conditions-generales", label: "CGV" },
-    );
-
-    return items;
-  }, [hasEbookAccess]);
+    ],
+    [],
+  );
 
   useEffect(() => {
     let lastY = window.scrollY;
@@ -122,6 +111,9 @@ export function Header() {
 
             <div className="min-w-0">
               <p className="site-brand-title">Une béninoise en Martinique</p>
+              <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-[rgba(245,224,175,0.82)]">
+                lecture gratuite
+              </p>
             </div>
           </Link>
 
@@ -152,10 +144,17 @@ export function Header() {
                   </Link>
                 ) : null}
 
+                <Link
+                  href="/bibliotheque"
+                  className="site-action site-action-gold inline-flex items-center justify-center"
+                >
+                  Lire gratuitement
+                </Link>
+
                 <button
                   onClick={handleLogout}
                   disabled={logoutBusy}
-                  className="site-action site-action-gold inline-flex items-center justify-center disabled:opacity-60"
+                  className="site-action site-action-soft inline-flex items-center justify-center disabled:opacity-60"
                   type="button"
                 >
                   {logoutBusy ? "Déconnexion..." : "Déconnexion"}
@@ -174,7 +173,7 @@ export function Header() {
                   href="/register"
                   className="site-action site-action-gold inline-flex items-center justify-center"
                 >
-                  Créer un compte
+                  Accès gratuit
                 </Link>
               </>
             )}
@@ -239,10 +238,18 @@ export function Header() {
                         </Link>
                       ) : null}
 
+                      <Link
+                        href="/bibliotheque"
+                        onClick={() => setOpen(false)}
+                        className="site-mobile-cta site-mobile-cta-gold inline-flex items-center justify-center"
+                      >
+                        Lire gratuitement
+                      </Link>
+
                       <button
                         onClick={handleLogout}
                         disabled={logoutBusy}
-                        className="site-mobile-cta site-mobile-cta-gold inline-flex items-center justify-center disabled:opacity-60"
+                        className="site-mobile-cta site-mobile-cta-soft inline-flex items-center justify-center disabled:opacity-60"
                         type="button"
                       >
                         {logoutBusy ? "Déconnexion..." : "Déconnexion"}
@@ -263,7 +270,7 @@ export function Header() {
                         onClick={() => setOpen(false)}
                         className="site-mobile-cta site-mobile-cta-gold inline-flex items-center justify-center"
                       >
-                        Créer un compte
+                        Accès gratuit
                       </Link>
                     </>
                   )}

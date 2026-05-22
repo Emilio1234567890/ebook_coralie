@@ -5,10 +5,16 @@ import { asyncHandler, ok } from "../utils/http.js";
 
 const r = Router();
 
+function isFreeEbookAccess() {
+  return String(process.env.FREE_EBOOK_ACCESS || "").toLowerCase() === "true";
+}
+
 r.get(
   "/dashboard",
   requireAuth,
   asyncHandler(async (req, res) => {
+    const freeAccess = isFreeEbookAccess();
+
     const product = await prisma.product.findUnique({
       where: { slug: "ebook" },
     });
@@ -16,7 +22,8 @@ r.get(
     if (!product) {
       return ok(res, {
         product: null,
-        hasAccess: false,
+        hasAccess: freeAccess,
+        freeAccess,
         orders: [],
         pendingOrders: [],
       });
@@ -50,24 +57,26 @@ r.get(
       },
     });
 
-    const pendingOrders = await prisma.order.findMany({
-      where: {
-        userId: req.user.id,
-        productId: product.id,
-        status: "pending",
-      },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      select: {
-        id: true,
-        status: true,
-        amountCents: true,
-        currency: true,
-        paidAt: true,
-        createdAt: true,
-        paymentProvider: true,
-      },
-    });
+    const pendingOrders = freeAccess
+      ? []
+      : await prisma.order.findMany({
+          where: {
+            userId: req.user.id,
+            productId: product.id,
+            status: "pending",
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          select: {
+            id: true,
+            status: true,
+            amountCents: true,
+            currency: true,
+            paidAt: true,
+            createdAt: true,
+            paymentProvider: true,
+          },
+        });
 
     return ok(res, {
       product: {
@@ -78,7 +87,8 @@ r.get(
         currency: product.currency,
         active: product.active,
       },
-      hasAccess: !!ent?.active,
+      hasAccess: freeAccess || !!ent?.active,
+      freeAccess,
       orders,
       pendingOrders,
     });

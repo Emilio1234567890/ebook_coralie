@@ -8,6 +8,10 @@ import { useAuth } from "@/app/lib/auth";
 import { apiFetch } from "@/app/lib/api";
 import { useEffect, useMemo, useState } from "react";
 
+const FREE_EBOOK_ACCESS =
+  String(process.env.NEXT_PUBLIC_FREE_EBOOK_ACCESS || "").toLowerCase() ===
+  "true";
+
 const JOURNEY = [
   {
     id: "depart",
@@ -15,6 +19,8 @@ const JOURNEY = [
     title: "Tout commence par une décision intérieure.",
     text: "Avant la beauté du décor, il y a ce moment suspendu où l’on quitte un rythme, une ville, des habitudes. La Martinique n’apparaît pas seulement comme une destination : elle commence comme un mouvement, une bascule, une promesse.",
     img: "/media/martinique-horizon.jpg",
+    focus: "Le départ",
+    detail: "Quitter ses repères et accepter l’inconnu.",
   },
   {
     id: "arrivee",
@@ -22,6 +28,8 @@ const JOURNEY = [
     title: "Puis l’île se révèle par la chaleur, la lumière, l’accueil.",
     text: "Les premiers jours ne ressemblent pas à une brochure. Ils ont la texture du réel : une lumière différente, une énergie nouvelle, des visages, des rues, une sensation très nette d’entrer ailleurs sans totalement se perdre.",
     img: "/media/martinique-ville.jpg",
+    focus: "L’arrivée",
+    detail: "Découvrir une autre énergie, entre beauté et adaptation.",
   },
   {
     id: "lifestyle",
@@ -29,6 +37,8 @@ const JOURNEY = [
     title: "Très vite, il faut apprendre un autre tempo.",
     text: "La Martinique se vit aussi dans les trajets, les habitudes, le coût des choses, les rencontres, les ajustements. C’est là que l’expérience devient plus profonde : elle oblige à observer, ralentir, comprendre autrement.",
     img: "/media/martinique-rue.jpg",
+    focus: "Le quotidien",
+    detail: "Comprendre le rythme local et ses vrais contrastes.",
   },
   {
     id: "nature",
@@ -36,6 +46,8 @@ const JOURNEY = [
     title: "Et soudain, la nature reprend toute la place.",
     text: "Reliefs, anses, plages, forêt, souffle marin : l’île offre constamment plus que de jolies images. Elle impose une relation sensible au paysage, presque physique, comme si l’on apprenait à habiter le décor autant qu’à le regarder.",
     img: "/media/martinique-anse.jpg",
+    focus: "La nature",
+    detail: "Ressentir l’île à travers ses paysages et sa puissance.",
   },
 ];
 
@@ -84,24 +96,25 @@ function JourneyBlock({ item, index }) {
           reverse ? "lg:order-2" : "lg:order-1",
         ].join(" ")}
       >
-        <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-black shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
+        <div className="group relative overflow-hidden rounded-[30px] border border-white/10 bg-black shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
           <div className="relative h-[420px] sm:h-[520px] lg:h-[640px]">
             <Image
               src={item.img}
               alt={item.title}
               fill
-              className="object-cover object-center transition-transform duration-700 hover:scale-[1.03]"
+              className="object-cover object-center transition-transform duration-700 group-hover:scale-[1.035]"
               sizes="(max-width: 1024px) 100vw, 58vw"
             />
 
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,16,0.06),rgba(8,10,16,0.22))]" />
-            <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-[rgba(6,8,12,0.88)] via-[rgba(6,8,12,0.30)] to-transparent" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,16,0.04),rgba(8,10,16,0.24))]" />
+            <div className="absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-[rgba(6,8,12,0.9)] via-[rgba(6,8,12,0.34)] to-transparent" />
+
+            <div className="absolute left-6 top-6 rounded-full border border-white/12 bg-black/25 px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-white/72 backdrop-blur-md sm:left-8 sm:top-8">
+              {item.tag}
+            </div>
 
             <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 lg:p-10">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-white/68">
-                {item.tag}
-              </p>
-              <h2 className="mt-4 max-w-3xl text-3xl leading-[1.02] text-white sm:text-5xl">
+              <h2 className="max-w-3xl text-3xl leading-[1.02] text-white sm:text-5xl">
                 {item.title}
               </h2>
             </div>
@@ -115,30 +128,48 @@ function JourneyBlock({ item, index }) {
           reverse ? "lg:order-1" : "lg:order-2",
         ].join(" ")}
       >
-        <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-6 shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-8 lg:p-10">
-          <div className="flex items-start gap-5">
-            <div className="text-[clamp(3.4rem,8vw,6rem)] leading-none tracking-[-0.08em] text-white/10">
-              {String(index + 1).padStart(2, "0")}
+        <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] p-6 shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-8 lg:p-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[rgba(212,176,96,0.10)] blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -left-20 h-52 w-52 rounded-full bg-[rgba(68,196,224,0.08)] blur-3xl" />
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] border border-white/10 bg-white/5 text-2xl text-white/80">
+                {String(index + 1).padStart(2, "0")}
+              </div>
+
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.28em] text-white/40">
+                  extrait d’ambiance
+                </p>
+                <p className="mt-2 text-xl text-white">{item.focus}</p>
+              </div>
             </div>
 
-            <div className="flex-1 pt-2">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-white/40">
-                dans le livre
-              </p>
+            <p className="mt-7 text-[1.02rem] leading-9 text-white/72">
+              {item.text}
+            </p>
 
-              <p className="mt-6 text-[1.02rem] leading-9 text-white/72">
-                {item.text}
-              </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-white/36">
+                  ce passage évoque
+                </p>
+                <p className="mt-3 text-sm leading-7 text-white/72">
+                  {item.detail}
+                </p>
+              </div>
 
-              <div className="mt-8 rounded-[22px] border border-white/10 bg-white/4 p-5">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">
-                  tonalité
+              <div className="rounded-[20px] border border-[rgba(212,176,96,0.18)] bg-[rgba(212,176,96,0.08)] p-4">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-[rgba(245,224,175,0.72)]">
+                  accès au livre
                 </p>
-                <p className="mt-3 leading-8 text-white/70">
-                  Le récit avance par sensations, détails vécus, fragments de
-                  quotidien et transformations intérieures, sans jamais se
-                  réduire à une simple liste de conseils.
-                </p>
+                <Link
+                  href="/bibliotheque"
+                  className="mt-3 inline-flex text-sm text-[rgba(245,224,175,0.96)] transition hover:text-white"
+                >
+                  Lire gratuitement →
+                </Link>
               </div>
             </div>
           </div>
@@ -182,11 +213,16 @@ function FacetCard({ item, i }) {
 
 export default function MartiniquePage() {
   const { user } = useAuth();
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess, setHasAccess] = useState(FREE_EBOOK_ACCESS);
   const [checkingAccess, setCheckingAccess] = useState(false);
 
   useEffect(() => {
     async function loadAccess() {
+      if (FREE_EBOOK_ACCESS) {
+        setHasAccess(true);
+        return;
+      }
+
       if (!user) {
         setHasAccess(false);
         return;
@@ -207,7 +243,8 @@ export default function MartiniquePage() {
   }, [user]);
 
   const ctaLabel = useMemo(() => {
-    if (checkingAccess) return "Vérification";
+    if (FREE_EBOOK_ACCESS) return "gratuit";
+    if (checkingAccess) return "vérification";
     return hasAccess ? "déjà débloquée" : "immersive";
   }, [checkingAccess, hasAccess]);
 
@@ -230,7 +267,7 @@ export default function MartiniquePage() {
                 <div className="flex flex-wrap gap-3">
                   <span className="lux-chip">récit sensible</span>
                   <span className="lux-chip">martinique</span>
-                  <span className="lux-chip">sans tout dévoiler</span>
+                  <span className="lux-chip">lecture gratuite</span>
                 </div>
 
                 <p className="lux-kicker mt-8">un avant-goût de l’édition</p>
@@ -251,25 +288,37 @@ export default function MartiniquePage() {
                     Explorer les fragments
                   </a>
 
-                  {hasAccess ? (
-                    <Link
-                      href="/bibliotheque"
-                      className="lux-btn lux-btn-ghost"
-                    >
-                      Aller à la bibliothèque
-                    </Link>
-                  ) : (
-                    <Link href="/#acheter" className="lux-btn lux-btn-ghost">
-                      Découvrir l’édition
-                    </Link>
-                  )}
+                  <Link href="/bibliotheque" className="lux-btn lux-btn-ghost">
+                    Lire gratuitement
+                  </Link>
                 </div>
 
-                {hasAccess ? (
-                  <div className="mt-6 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-                    Ton ebook est déjà disponible dans ta bibliothèque.
+                <div className="mt-6 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                  L’ebook est accessible gratuitement depuis la bibliothèque.
+                </div>
+
+                <div className="mt-12 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
+                      univers
+                    </p>
+                    <p className="mt-2 text-white/88">Martinique</p>
                   </div>
-                ) : null}
+
+                  <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
+                      format
+                    </p>
+                    <p className="mt-2 text-white/88">ebook</p>
+                  </div>
+
+                  <div className="rounded-[18px] border border-white/10 bg-white/4 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/38">
+                      lecture
+                    </p>
+                    <p className="mt-2 text-white/88">{ctaLabel}</p>
+                  </div>
+                </div>
               </motion.div>
 
               <motion.div
@@ -433,26 +482,18 @@ export default function MartiniquePage() {
                 </p>
 
                 <div className="mt-8 flex flex-wrap gap-4">
-                  {hasAccess ? (
-                    <Link href="/bibliotheque" className="lux-btn lux-btn-gold">
-                      Lire l’ebook
-                    </Link>
-                  ) : (
-                    <Link href="/#acheter" className="lux-btn lux-btn-gold">
-                      Acheter l’édition
-                    </Link>
-                  )}
+                  <Link href="/bibliotheque" className="lux-btn lux-btn-gold">
+                    Lire gratuitement
+                  </Link>
 
                   <Link href="/" className="lux-btn lux-btn-ghost">
                     Retour à l’accueil
                   </Link>
                 </div>
 
-                {hasAccess ? (
-                  <div className="mt-6 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-                    L’édition est déjà disponible dans ton espace privé.
-                  </div>
-                ) : null}
+                <div className="mt-6 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                  L’édition est accessible gratuitement.
+                </div>
               </div>
             </motion.div>
           </section>

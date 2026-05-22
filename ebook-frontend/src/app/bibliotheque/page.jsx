@@ -12,9 +12,13 @@ const PdfBookReader = dynamic(() => import("@/components/PdfBookReader"), {
   loading: () => <div className="reader-loading">Chargement du lecteur…</div>,
 });
 
+const FREE_EBOOK_ACCESS =
+  String(process.env.NEXT_PUBLIC_FREE_EBOOK_ACCESS || "").toLowerCase() ===
+  "true";
+
 export default function BibliothequePage() {
   const [ready, setReady] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess, setHasAccess] = useState(FREE_EBOOK_ACCESS);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [err, setErr] = useState(null);
   const [entered, setEntered] = useState(false);
@@ -37,20 +41,32 @@ export default function BibliothequePage() {
       try {
         setErr(null);
 
-        const d = await apiFetch("/api/dashboard");
-        setHasAccess(!!d.hasAccess);
+        let access = FREE_EBOOK_ACCESS;
 
-        if (!d.hasAccess) {
+        if (!FREE_EBOOK_ACCESS) {
+          const d = await apiFetch("/api/dashboard");
+          access = !!d.hasAccess;
+        }
+
+        setHasAccess(access);
+
+        if (!access) {
           setReady(true);
           return;
         }
 
+        const token = getToken();
+
+        const headers = token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : {};
+
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/reader/ebook`,
           {
-            headers: {
-              Authorization: `Bearer ${getToken()}`,
-            },
+            headers,
           },
         );
 
@@ -98,7 +114,11 @@ export default function BibliothequePage() {
               <div className="reader-topbar">
                 <div>
                   <p className="lux-kicker">bibliothèque</p>
-                  <h1 className="reader-title">Lecture privée</h1>
+                  <h1 className="reader-title">Lecture gratuite</h1>
+                  <p className="reader-subtitle">
+                    L’ebook est maintenant disponible gratuitement. Tu peux
+                    l’ouvrir directement depuis cette page.
+                  </p>
                 </div>
               </div>
             ) : null}
@@ -123,9 +143,16 @@ export default function BibliothequePage() {
               <div className="reader-stage">
                 <div className="book-entry">
                   <div className="book-entry__left">
+                    <p className="lux-kicker">ebook offert</p>
+
                     <h2 className="book-entry__title">
                       Une béninoise en Martinique
                     </h2>
+
+                    <p className="book-entry__text">
+                      Le livre est accessible gratuitement. Ouvre-le directement
+                      pour commencer ta lecture.
+                    </p>
 
                     <div className="book-entry__actions">
                       <button
@@ -133,11 +160,11 @@ export default function BibliothequePage() {
                         className="lux-btn lux-btn-gold"
                         onClick={() => setEntered(true)}
                       >
-                        Ouvrir le livre
+                        Lire gratuitement
                       </button>
 
-                      <Link href="/dashboard" className="lux-btn lux-btn-ghost">
-                        Retour au dashboard
+                      <Link href="/" className="lux-btn lux-btn-ghost">
+                        Retour à l’accueil
                       </Link>
                     </div>
                   </div>
@@ -161,7 +188,7 @@ export default function BibliothequePage() {
 
                       <div className="book-cover-overlay" />
                       <div className="book-cover-label">
-                        <span>Ouvrir le livre</span>
+                        <span>Lire gratuitement</span>
                       </div>
                     </button>
                   </div>

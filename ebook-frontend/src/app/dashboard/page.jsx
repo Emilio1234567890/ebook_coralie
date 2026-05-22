@@ -1,140 +1,191 @@
 "use client";
 
+import Link from "next/link";
 import { Header } from "@/components/Header";
 import { apiFetch } from "@/app/lib/api";
 import { useAuth } from "@/app/lib/auth";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  BookOpen,
+  Crown,
+  Compass,
+  Mail,
+  RefreshCw,
+  Sparkles,
+  UserRound,
+  LibraryBig,
+  ShieldCheck,
+  ArrowRight,
+  Settings,
+} from "lucide-react";
 
-function euro(cents = 0) {
-  return (Number(cents) / 100).toFixed(2).replace(".", ",") + " €";
+function formatDate(value) {
+  if (!value) return null;
+
+  try {
+    return new Date(value).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return null;
+  }
 }
 
-function StatCard({ label, value, hint }) {
+function StatCard({ icon: Icon, label, value, hint, tone = "default" }) {
+  const toneClass =
+    tone === "gold"
+      ? "bg-[radial-gradient(circle_at_20%_0%,rgba(212,176,96,0.20),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))]"
+      : tone === "emerald"
+        ? "bg-[radial-gradient(circle_at_20%_0%,rgba(16,185,129,0.18),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))]"
+        : tone === "sea"
+          ? "bg-[radial-gradient(circle_at_20%_0%,rgba(68,196,224,0.16),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))]"
+          : "bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))]";
+
   return (
-    <div className="lux-card p-6">
-      <p className="lux-kicker">{label}</p>
-      <p className="mt-3 text-3xl text-white">{value}</p>
-      {hint ? <p className="mt-2 text-sm text-white/55">{hint}</p> : null}
-    </div>
+    <motion.article
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={[
+        "relative min-w-0 overflow-hidden rounded-[28px] border border-white/10 p-6",
+        "shadow-[0_22px_70px_rgba(0,0,0,0.28)]",
+        toneClass,
+      ].join(" ")}
+    >
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+
+      <div className="relative z-10 flex min-w-0 items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border border-white/10 bg-white/5 text-[rgba(245,224,175,0.96)]">
+          <Icon size={21} />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] uppercase tracking-[0.26em] text-white/42">
+            {label}
+          </p>
+
+          <p className="mt-3 truncate text-2xl text-white">{value}</p>
+
+          {hint ? (
+            <p className="mt-2 break-all text-sm leading-6 text-white/52">
+              {hint}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </motion.article>
   );
 }
 
-function StatusPill({ status }) {
-  const cls =
-    status === "paid"
-      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-      : status === "pending"
-        ? "border-amber-400/20 bg-amber-400/10 text-amber-200"
-        : status === "refunded"
-          ? "border-rose-400/20 bg-rose-400/10 text-rose-200"
-          : "border-white/10 bg-white/5 text-white/60";
-
-  const label =
-    status === "paid"
-      ? "payée"
-      : status === "pending"
-        ? "en attente"
-        : status === "refunded"
-          ? "remboursée"
-          : status;
-
+function ActionCard({
+  icon: Icon,
+  kicker,
+  title,
+  text,
+  href,
+  button,
+  primary = false,
+}) {
   return (
-    <span
-      className={[
-        "inline-flex items-center rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.22em]",
-        cls,
-      ].join(" ")}
+    <motion.article
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5 }}
+      transition={{ duration: 0.25 }}
+      className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.015))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-7"
     >
-      {label}
-    </span>
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+      <div className="flex h-14 w-14 items-center justify-center rounded-[20px] border border-white/10 bg-white/5 text-[rgba(245,224,175,0.96)]">
+        <Icon size={23} />
+      </div>
+
+      <p className="mt-8 text-[11px] uppercase tracking-[0.28em] text-white/42">
+        {kicker}
+      </p>
+
+      <h2 className="mt-4 text-3xl leading-tight text-white">{title}</h2>
+
+      <p className="mt-5 min-h-[96px] text-[1rem] leading-8 text-white/66">
+        {text}
+      </p>
+
+      <div className="mt-7">
+        <Link
+          href={href}
+          className={[
+            "inline-flex min-h-[50px] items-center justify-center gap-3 rounded-[16px] px-5 text-[11px] uppercase tracking-[0.18em] transition hover:-translate-y-1",
+            primary
+              ? "border border-[rgba(212,176,96,0.42)] bg-[linear-gradient(180deg,rgba(245,224,175,1),rgba(212,176,96,0.96))] text-[#17130d] shadow-[0_18px_40px_rgba(212,176,96,0.24)]"
+              : "border border-white/10 bg-white/5 text-white hover:bg-white/8",
+          ].join(" ")}
+        >
+          {button}
+          <ArrowRight size={15} />
+        </Link>
+      </div>
+    </motion.article>
+  );
+}
+
+function InfoLine({ label, value }) {
+  return (
+    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-5">
+      <p className="text-[11px] uppercase tracking-[0.24em] text-white/38">
+        {label}
+      </p>
+      <p className="mt-3 break-words text-white/82">{value}</p>
+    </div>
   );
 }
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
-  const router = useRouter();
 
-  const [data, setData] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [dashboard, setDashboard] = useState(null);
   const [err, setErr] = useState(null);
-  const [busyDeleteId, setBusyDeleteId] = useState(null);
-  const [loadingData, setLoadingData] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/");
-    }
-  }, [loading, user, router]);
-
-  async function load() {
+  async function loadDashboard() {
     setErr(null);
 
     try {
-      setLoadingData(true);
-      const r = await apiFetch("/api/dashboard");
-      setData(r);
+      setRefreshing(true);
+      const data = await apiFetch("/api/dashboard");
+      setDashboard(data);
+      setReady(true);
     } catch (e) {
-      const msg = e?.message || "Impossible de charger le dashboard.";
-
-      if (
-        msg.toLowerCase().includes("401") ||
-        msg.toLowerCase().includes("unauthorized") ||
-        msg.toLowerCase().includes("non autorisé")
-      ) {
-        router.replace("/");
-        return;
-      }
-
-      setErr(msg);
+      setErr(e.message || "Impossible de charger le dashboard.");
+      setReady(true);
     } finally {
-      setLoadingData(false);
+      setRefreshing(false);
     }
   }
 
   useEffect(() => {
-    if (!loading && user) {
-      load();
-    }
-  }, [loading, user]);
+    loadDashboard();
+  }, []);
 
-  async function deletePending(orderId) {
-    try {
-      setBusyDeleteId(orderId);
-      setErr(null);
+  const displayName = user?.name || "Bienvenue";
+  const userEmail = user?.email || "Email indisponible";
+  const createdAt = formatDate(user?.createdAt);
 
-      await apiFetch(`/api/orders/${orderId}/pending`, {
-        method: "DELETE",
-      });
+  const productName =
+    dashboard?.product?.name || "Une béninoise en Martinique";
 
-      await load();
-    } catch (e) {
-      setErr(e.message || "Impossible de supprimer cette commande.");
-    } finally {
-      setBusyDeleteId(null);
-    }
-  }
+  const productDescription =
+    dashboard?.product?.description ||
+    "Le livre est disponible gratuitement dans ta bibliothèque privée.";
 
-  const hasAccess = !!data?.hasAccess;
-  const product = data?.product || null;
-  const orders = data?.orders || [];
-  const pendingOrders = hasAccess ? [] : data?.pendingOrders || [];
+  const adminHint = user?.isAdmin ? "Accès administrateur" : "Compte lecteur";
 
-  const stats = useMemo(() => {
-    const paid = orders.filter((o) => o.status === "paid");
-    const total = paid.reduce((sum, o) => sum + (o.amountCents || 0), 0);
-
-    return {
-      ordersCount: orders.length,
-      paidCount: paid.length,
-      spent: euro(total),
-    };
-  }, [orders]);
-
-  if (loading || !user) {
-    return null;
-  }
+  const accessLabel = useMemo(() => {
+    if (!ready || loading) return "Chargement";
+    return "Ouvert";
+  }, [ready, loading]);
 
   return (
     <>
@@ -142,257 +193,217 @@ export default function DashboardPage() {
 
       <main className="page">
         <div className="container space-y-8">
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-            className="lux-hero relative overflow-hidden px-6 py-8 sm:px-8 sm:py-10 lg:px-10"
-          >
+          <section className="lux-hero relative overflow-hidden p-7 sm:p-10 lg:p-12">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(212,176,96,0.13),transparent_28%),radial-gradient(circle_at_100%_0%,rgba(68,196,224,0.10),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(16,185,129,0.08),transparent_34%)]" />
+
             <div className="relative z-10 grid gap-8 lg:grid-cols-12 lg:items-center">
               <div className="lg:col-span-7">
-                <h1 className="lux-title">Dashboard</h1>
+                <p className="lux-kicker">espace personnel</p>
 
-                <p className="mt-6 max-w-2xl text-lg leading-8 text-white/66">
-                  {user?.name ? `Bienvenue ${user.name}. ` : "Bienvenue. "}
-                  Ici tu retrouves ton accès, tes commandes et ta lecture
-                  privée.
+                <h1 className="mt-4 text-[clamp(3.6rem,8vw,6.5rem)] leading-[0.9] tracking-[-0.06em] text-white">
+                  Dashboard
+                </h1>
+
+                <p className="mt-7 max-w-2xl text-lg leading-9 text-white/70">
+                  Bienvenue {displayName}. Ton espace est maintenant simplifié :
+                  tu peux lire le livre gratuitement, retrouver la bibliothèque
+                  et accéder aux pages importantes du site.
                 </p>
 
-                <div className="mt-8 flex flex-wrap gap-4">
-                  <button
-                    onClick={load}
-                    className="lux-btn lux-btn-ghost"
-                    type="button"
-                  >
-                    Rafraîchir
-                  </button>
+                <div className="mt-9 flex flex-wrap gap-4">
+                  <Link href="/bibliotheque" className="lux-btn lux-btn-gold">
+                    Lire gratuitement
+                  </Link>
 
                   <Link href="/martinique" className="lux-btn lux-btn-ghost">
                     Martinique
                   </Link>
 
-                  {hasAccess ? (
-                    <>
-                      <Link
-                        href="/bibliotheque"
-                        className="lux-btn lux-btn-gold"
-                      >
-                        Lire l’ebook
-                      </Link>
+                  {user?.isAdmin ? (
+                    <Link href="/admin" className="lux-btn lux-btn-ghost">
+                      Admin
+                    </Link>
+                  ) : null}
 
-                      <span className="inline-flex min-h-[50px] items-center rounded-[14px] border border-emerald-400/20 bg-emerald-400/10 px-5 text-[11px] uppercase tracking-[0.18em] text-emerald-200">
-                        Déjà acheté
-                      </span>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => router.push("/checkout")}
-                      className="lux-btn lux-btn-gold"
-                      type="button"
-                    >
-                      Aller au checkout
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={loadDashboard}
+                    disabled={refreshing}
+                    className="lux-btn lux-btn-ghost"
+                  >
+                    <RefreshCw size={15} />
+                    {refreshing ? "Actualisation..." : "Rafraîchir"}
+                  </button>
                 </div>
 
                 {err ? (
-                  <div className="mt-5 rounded-[18px] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+                  <div className="mt-6 rounded-[18px] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
                     {err}
                   </div>
                 ) : null}
               </div>
 
               <div className="lg:col-span-5">
-                <div className="lux-card p-6 sm:p-8">
+                <div className="rounded-[30px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.25)] sm:p-8">
                   <p className="lux-kicker">statut</p>
-                  <h2 className="mt-3 text-3xl text-white">
-                    {hasAccess ? "Achat confirmé" : "Accès verrouillé"}
+
+                  <h2 className="mt-4 text-3xl text-white">
+                    Lecture gratuite
                   </h2>
-                  <p className="mt-4 leading-8 text-white/64">
-                    {hasAccess
-                      ? "Ton ebook est déjà débloqué. Aucun second achat n’est nécessaire."
-                      : "Passe par le checkout pour payer par carte ou avec PayPal."}
+
+                  <p className="mt-5 leading-8 text-white/68">
+                    Le livre est actuellement disponible gratuitement. Aucun
+                    paiement n’est nécessaire pour accéder à la lecture.
                   </p>
 
-                  <div className="mt-6 rounded-[20px] border border-white/10 bg-white/5 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+                  <div className="mt-7 rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
+                    <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">
                       produit
                     </p>
-                    <p className="mt-2 text-white/85">
-                      {product?.name || "ebook"}
-                    </p>
-                    <p className="mt-2 text-white/60">
-                      {product ? euro(product.priceCents) : "—"}
+                    <p className="mt-3 text-white">{productName}</p>
+                    <p className="mt-2 text-sm leading-7 text-white/58">
+                      {productDescription}
                     </p>
                   </div>
 
-                  {hasAccess ? (
-                    <div className="mt-4 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
-                      Cet ebook est déjà associé à ton compte.
-                    </div>
-                  ) : null}
+                  <div className="mt-5 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                    Accès gratuit activé.
+                  </div>
                 </div>
               </div>
             </div>
-          </motion.section>
+          </section>
 
-          <section className="grid gap-4 md:grid-cols-3">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              label="Commandes"
-              value={stats.ordersCount}
-              hint="Historique total"
+              icon={BookOpen}
+              label="Accès"
+              value={accessLabel}
+              hint="Lecture gratuite activée"
+              tone="emerald"
             />
+
             <StatCard
-              label="Payées"
-              value={stats.paidCount}
-              hint="Confirmées"
+              icon={LibraryBig}
+              label="Bibliothèque"
+              value="Prête"
+              hint="Ton espace de lecture"
+              tone="gold"
             />
+
             <StatCard
-              label="Total payé"
-              value={stats.spent}
-              hint="Montant validé"
+              icon={UserRound}
+              label="Compte"
+              value="Connecté"
+              hint={userEmail}
+              tone="sea"
+            />
+
+            <StatCard
+              icon={Crown}
+              label="Rôle"
+              value={user?.isAdmin ? "Admin" : "Utilisateur"}
+              hint={adminHint}
             />
           </section>
 
-          {loadingData ? (
-            <section className="lux-card p-6 sm:p-8 text-white/60">
-              Chargement du dashboard...
-            </section>
-          ) : null}
+          <section className="grid gap-6 lg:grid-cols-3">
+            <ActionCard
+              icon={BookOpen}
+              kicker="lecture"
+              title="Lire le livre"
+              text="Ouvre directement l’ebook dans la bibliothèque privée, avec une interface de lecture simple et confortable."
+              href="/bibliotheque"
+              button="Lire maintenant"
+              primary
+            />
 
-          {!loadingData && !hasAccess && pendingOrders.length > 0 ? (
-            <section className="lux-card p-6 sm:p-8">
-              <div className="flex items-end justify-between gap-4">
+            <ActionCard
+              icon={Compass}
+              kicker="univers"
+              title="Explorer la Martinique"
+              text="Découvre la page immersive qui présente l’ambiance du livre sans dévoiler tout son contenu."
+              href="/martinique"
+              button="Découvrir"
+            />
+
+            <ActionCard
+              icon={Mail}
+              kicker="support"
+              title="Contacter le support"
+              text="Une question, un souci d’accès ou une demande particulière ? Passe par le formulaire de contact."
+              href="/contact"
+              button="Contacter"
+            />
+          </section>
+
+          <section className="grid gap-6 lg:grid-cols-12">
+            <div className="lux-card overflow-hidden p-6 sm:p-8 lg:col-span-7">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-white/5 text-[rgba(245,224,175,0.96)]">
+                  <Sparkles size={24} />
+                </div>
+
                 <div>
-                  <h2 className="text-3xl text-white">Actions en attente</h2>
-                  <p className="mt-3 text-white/58">
-                    Tu peux reprendre ou supprimer un paiement interrompu.
-                  </p>
+                  <p className="lux-kicker">résumé</p>
+                  <h2 className="mt-3 text-3xl text-white">
+                    Ton espace est simplifié.
+                  </h2>
                 </div>
               </div>
 
-              <div className="mt-6 space-y-4">
-                {pendingOrders.map((o, idx) => (
-                  <motion.div
-                    key={o.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: idx * 0.03 }}
-                    className="rounded-[22px] border border-white/10 bg-white/4 p-5"
+              <p className="mt-6 max-w-3xl text-lg leading-9 text-white/66">
+                Comme le livre est gratuit, les blocs commandes, paiements et
+                historique d’achat ne sont plus affichés ici. L’objectif du
+                dashboard est maintenant clair : accéder au livre, retrouver les
+                informations du compte et naviguer facilement.
+              </p>
+
+              <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                <InfoLine label="Nom" value={user?.name || "Non renseigné"} />
+                <InfoLine label="Email" value={userEmail} />
+                <InfoLine
+                  label="Compte créé"
+                  value={createdAt || "Date non disponible"}
+                />
+                <InfoLine
+                  label="Statut"
+                  value={user?.isAdmin ? "Administrateur" : "Lecteur"}
+                />
+              </div>
+            </div>
+
+            <div className="lux-card p-6 sm:p-8 lg:col-span-5">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[20px] border border-white/10 bg-white/5 text-[rgba(245,224,175,0.96)]">
+                <ShieldCheck size={24} />
+              </div>
+
+              <p className="lux-kicker mt-8">accès</p>
+              <h2 className="mt-3 text-3xl text-white">Aucun paiement requis.</h2>
+
+              <p className="mt-5 leading-8 text-white/66">
+                Le paiement peut rester présent dans le code pour plus tard,
+                mais côté utilisateur, l’accès gratuit est maintenant mis en
+                avant.
+              </p>
+
+              <div className="mt-8 space-y-3">
+                <div className="rounded-[20px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-4 text-emerald-200">
+                  Lecture gratuite active
+                </div>
+
+                {user?.isAdmin ? (
+                  <Link
+                    href="/admin"
+                    className="flex min-h-[52px] items-center justify-center gap-3 rounded-[18px] border border-white/10 bg-white/5 px-4 text-[11px] uppercase tracking-[0.18em] text-white transition hover:bg-white/8"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <p className="text-lg text-white">Commande #{o.id}</p>
-                          <StatusPill status={o.status} />
-                        </div>
-
-                        <p className="mt-3 text-sm leading-7 text-white/58">
-                          {euro(o.amountCents)} —{" "}
-                          {String(o.currency || "eur").toUpperCase()} —{" "}
-                          {o.paymentProvider || "payment"}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          onClick={() => router.push("/checkout")}
-                          className="lux-btn lux-btn-gold"
-                          type="button"
-                        >
-                          Reprendre
-                        </button>
-
-                        <button
-                          onClick={() => deletePending(o.id)}
-                          disabled={busyDeleteId === o.id}
-                          className="lux-btn lux-btn-ghost"
-                          type="button"
-                        >
-                          {busyDeleteId === o.id
-                            ? "Suppression..."
-                            : "Supprimer"}
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    <Settings size={16} />
+                    Ouvrir l’administration
+                  </Link>
+                ) : null}
               </div>
-            </section>
-          ) : null}
-
-          {!loadingData ? (
-            <section className="lux-card p-6 sm:p-8">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <h2 className="text-3xl text-white">Commandes</h2>
-                </div>
-
-                <button
-                  onClick={load}
-                  className="lux-btn lux-btn-ghost"
-                  type="button"
-                >
-                  Rafraîchir
-                </button>
-              </div>
-
-              {!orders.length ? (
-                <div className="mt-6 rounded-[20px] border border-white/10 bg-white/4 p-5 text-white/60">
-                  Aucune commande pour le moment.
-                </div>
-              ) : (
-                <div className="mt-6 space-y-4">
-                  {orders.map((o, idx) => (
-                    <motion.div
-                      key={o.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, delay: idx * 0.03 }}
-                      className="rounded-[22px] border border-white/10 bg-white/4 p-5"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <p className="text-lg text-white">
-                              Commande #{o.id}
-                            </p>
-                            <StatusPill status={o.status} />
-                          </div>
-
-                          <p className="mt-3 text-sm leading-7 text-white/58">
-                            {euro(o.amountCents)} —{" "}
-                            {String(o.currency || "eur").toUpperCase()}
-                            {o.paidAt ? " • paiement confirmé" : ""}
-                            {o.paymentProvider ? ` • ${o.paymentProvider}` : ""}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-3">
-                          {hasAccess ? (
-                            <Link
-                              href="/bibliotheque"
-                              className="lux-btn lux-btn-gold"
-                            >
-                              Lire
-                            </Link>
-                          ) : (
-                            <button
-                              onClick={() => router.push("/checkout")}
-                              className="lux-btn lux-btn-gold"
-                              type="button"
-                            >
-                              Checkout
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </section>
-          ) : null}
+            </div>
+          </section>
         </div>
       </main>
     </>

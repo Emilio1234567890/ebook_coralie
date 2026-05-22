@@ -7,6 +7,10 @@ import { asyncHandler, fail } from "../utils/http.js";
 
 const r = Router();
 
+function isFreeEbookAccess() {
+  return String(process.env.FREE_EBOOK_ACCESS || "").toLowerCase() === "true";
+}
+
 function resolvePdfPath(productFilePath) {
   const envPath = process.env.EBOOK_FILE_PATH;
   const finalPath = envPath || productFilePath;
@@ -18,10 +22,20 @@ function resolvePdfPath(productFilePath) {
     : path.resolve(process.cwd(), finalPath);
 }
 
+function requireAuthOnlyWhenPaid(req, res, next) {
+  if (isFreeEbookAccess()) {
+    return next();
+  }
+
+  return requireAuth(req, res, next);
+}
+
 r.get(
   "/reader/ebook",
-  requireAuth,
+  requireAuthOnlyWhenPaid,
   asyncHandler(async (req, res) => {
+    const freeAccess = isFreeEbookAccess();
+
     const product = await prisma.product.findUnique({
       where: { slug: "ebook" },
     });
@@ -30,17 +44,19 @@ r.get(
       return fail(res, 404, "Produit introuvable.");
     }
 
-    const ent = await prisma.entitlement.findUnique({
-      where: {
-        userId_productId: {
-          userId: req.user.id,
-          productId: product.id,
+    if (!freeAccess) {
+      const ent = await prisma.entitlement.findUnique({
+        where: {
+          userId_productId: {
+            userId: req.user.id,
+            productId: product.id,
+          },
         },
-      },
-    });
+      });
 
-    if (!ent?.active) {
-      return fail(res, 403, "Accès refusé.");
+      if (!ent?.active) {
+        return fail(res, 403, "Accès refusé.");
+      }
     }
 
     const filePath = resolvePdfPath(product.filePath);

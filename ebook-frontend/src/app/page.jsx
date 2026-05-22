@@ -14,7 +14,6 @@ import {
   Compass,
   Feather,
   LockKeyhole,
-  Sparkles,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -24,36 +23,44 @@ const FREE_EBOOK_ACCESS =
 
 const HERO_SLIDES = [
   {
-    id: "anse",
+    id: "carousel-0",
     kicker: "martinique",
     title: "Une traversée intime entre départ, lumière et renaissance.",
     text: "Un ebook sensible qui raconte l’expérience d’une Béninoise en Martinique, entre paysages, quotidien, adaptation et transformation personnelle.",
-    image: "/media/martinique-anse.jpg",
+    image: "/media/image_carousel.jpg",
     badge: "lecture immersive",
   },
   {
-    id: "horizon",
+    id: "carousel-1",
     kicker: "récit personnel",
     title: "Un récit qui ne vend pas du rêve. Il raconte une vraie expérience.",
     text: "La beauté de l’île, mais aussi les repères à reconstruire, les découvertes, les contrastes et les émotions d’un nouveau départ.",
-    image: "/media/martinique-horizon.jpg",
+    image: "/media/image_carousel1.jpg",
     badge: "vécu & sincère",
   },
   {
-    id: "ville",
+    id: "carousel-2",
     kicker: "vie locale",
     title: "Derrière les paysages, il y a le quotidien, les rues, les choix.",
     text: "Le livre ouvre une fenêtre sur l’installation, les habitudes, le rythme martiniquais et ce que l’île change dans la manière de voir les choses.",
-    image: "/media/martinique-ville.jpg",
+    image: "/media/image_carousel2.jpg",
     badge: "accès gratuit",
   },
   {
-    id: "foret",
+    id: "carousel-3",
     kicker: "évasion",
     title: "Une île qui se ressent autant qu’elle se regarde.",
     text: "Reliefs, mer, chaleur, rencontres et émotions : une lecture courte, belle et accessible, pensée comme une porte d’entrée vers la Martinique.",
-    image: "/media/martinique-foret.jpg",
+    image: "/media/image_carousel3.jpg",
     badge: "ebook offert",
+  },
+  {
+    id: "carousel-4",
+    kicker: "lecture gratuite",
+    title: "Ouvre la bibliothèque et entre dans l’univers du livre.",
+    text: "Une lecture accessible gratuitement, dans un espace simple, doux et pensé pour découvrir l’histoire sans friction.",
+    image: "/media/image_carousel4.jpg",
+    badge: "disponible maintenant",
   },
 ];
 
@@ -235,8 +242,9 @@ export default function HomePage() {
 
   const mainButtonLabel = useMemo(() => {
     if (busy) return "Ouverture...";
-    if (FREE_EBOOK_ACCESS)
+    if (FREE_EBOOK_ACCESS) {
       return user ? "Lire gratuitement" : "Créer mon accès gratuit";
+    }
     if (checkingAccess || loading) return "Vérification...";
     if (hasAccess) return "Aller à la bibliothèque";
     return "Accéder à l’édition";
@@ -271,6 +279,7 @@ export default function HomePage() {
                     className="object-cover"
                     sizes="100vw"
                   />
+
                   <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,8,12,0.92),rgba(6,8,12,0.52)_42%,rgba(6,8,12,0.18)_100%)]" />
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,8,12,0.15),rgba(6,8,12,0.82))]" />
                 </motion.div>
@@ -423,7 +432,7 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-4 gap-2">
+                    <div className="mt-4 grid grid-cols-5 gap-2">
                       {HERO_SLIDES.map((slide, index) => (
                         <button
                           key={slide.id}
@@ -621,8 +630,8 @@ export default function HomePage() {
           <section className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black shadow-[0_28px_100px_rgba(0,0,0,0.34)]">
             <div className="relative min-h-[420px]">
               <Image
-                src="/media/martinique-rue.jpg"
-                alt="Rue vivante en Martinique"
+                src="/media/image_carousel4.jpg"
+                alt="Martinique"
                 fill
                 className="object-cover"
                 sizes="100vw"
